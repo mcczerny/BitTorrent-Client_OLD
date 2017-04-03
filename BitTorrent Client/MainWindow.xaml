@@ -1,0 +1,182 @@
+﻿<Window x:Class="BitTorrent_Client.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:BitTorrent_Client"
+        xmlns:tm="clr-namespace:BitTorrent_Client.Models.TorrentModels"
+        xmlns:vm="clr-namespace:BitTorrent_Client.ViewModels"
+        xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="350" Width="525">
+    <Window.Resources>
+        <tm:Torrent x:Key="torrent"/>
+        <vm:ViewModelBase x:Key="viewModel"/>
+    </Window.Resources>
+
+    <DockPanel x:Name="grid"
+               DataContext="{Binding Source={StaticResource torrent}}">
+        <Menu DockPanel.Dock="Top"                     
+              Background="Transparent"
+>
+            <MenuItem Header="_File">
+                <MenuItem Header="_Open" 
+                          Command="{Binding Path=OpenFileDialogCommand, Source={StaticResource viewModel}}"/>
+            </MenuItem>
+            <MenuItem Header="_Options"/>
+            <MenuItem Header="_Help"/>
+        </Menu>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="3*"/>
+            </Grid.ColumnDefinitions>
+
+
+            <Grid Grid.Column="0">
+                <TextBox Text="Side panel"/>
+
+            </Grid>
+
+
+            <GridSplitter Grid.Column="1"                      
+                          Width="1"                  
+                          HorizontalAlignment="Stretch"/>
+
+            <Grid Grid.Column="2">
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="1*"/>
+                    <RowDefinition Height="1"/>
+                    <RowDefinition Height="1*"/>
+                </Grid.RowDefinitions>
+
+
+                <DataGrid Grid.Row="0"                                             
+                          x:Name="TorrentGrid"                        
+                          Background="Transparent"                       
+                          RowBackground="Transparent"    
+                          AutoGenerateColumns="False" 
+                          IsReadOnly="true"                   
+                          GridLinesVisibility="None"                  
+                          Grid.RowSpan="3"
+                          DataContext="{Binding Source={StaticResource viewModel}}"                       
+                          ItemsSource="{Binding TorrentViewModel}">
+
+                    <i:Interaction.Triggers>
+                        <i:EventTrigger EventName="SelectionChanged">
+                            <i:InvokeCommandAction Command="{Binding SelectionChangedCommand}"                               
+                                                   CommandParameter="{Binding SelectedItems, ElementName=TorrentGrid}"/>
+                        </i:EventTrigger>
+                    </i:Interaction.Triggers>
+
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Name" Binding="{Binding Name}"/>
+                        <DataGridTextColumn Header="Size" Binding="{Binding FileSize}"/>
+
+                        <DataGridTemplateColumn Header="Pecentage Downloaded">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <ProgressBar Value="10"
+                                                     
+                                                 Minimum="0"
+                                                 Maximum="100"/>
+                                        <TextBlock Text="6"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="Download Speed"/>
+                        <DataGridTextColumn Header="Upload Speed"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <GridSplitter Grid.Row="1" 
+                              Height="5" 
+                              VerticalAlignment="Stretch"/>
+
+                <TabControl Grid.Row="2">
+
+                    <TabItem Header="Files">
+                        <DataGrid Background="Transparent"
+                                  RowBackground="Transparent"
+                                  DataContext="{Binding Source={StaticResource viewModel}}"
+                                  ItemsSource="{Binding SelectedTorrentFilesViewModel}"
+                                  AutoGenerateColumns="false"    
+                                  IsReadOnly="true"
+                                  GridLinesVisibility="None">
+
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Name"        
+                                                    Binding="{Binding Path}">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="{x:Type TextBlock}" 
+                                               BasedOn="{StaticResource {x:Type TextBlock}}">
+                                            <Setter Property="TextTrimming" 
+                                                    Value="CharacterEllipsis"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Size" 
+                                                    Binding="{Binding FileSize}"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </TabItem>
+                    <TabItem Header="Info">
+                        <ListView Background="Transparent"
+                                  DataContext="{Binding Source={StaticResource viewModel}}"
+                                  ItemsSource="{Binding SelectedTorrentFilesViewModel}">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <WrapPanel>
+                                        <TextBlock Text="Name: "/>
+                                        <TextBlock Text="{Binding Name}"/>
+                                    </WrapPanel>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </TabItem>
+                    <TabItem Header="Peers">
+                        <DataGrid Background="Transparent"                       
+                                  RowBackground="Transparent"    
+                                  AutoGenerateColumns="False" 
+                                  IsReadOnly="true"                   
+                                  GridLinesVisibility="None"      
+                                  DataContext="{Binding Source={StaticResource viewModel}}"
+                                  ItemsSource="{Binding SelectedTorrentPeersViewModel}">
+
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="IP" Binding="{Binding IP}"/>
+                                <DataGridTextColumn Header="Port" Binding="{Binding Port}"/>
+                                <DataGridTextColumn Header="Client"/>
+                                <DataGridTextColumn Header="%"/>
+                                <DataGridTextColumn Header="Download Speed"/>
+                                <DataGridTextColumn Header="Upload Speed"/>
+
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                    </TabItem>
+                    <TabItem Header="Trackers">
+                        <DataGrid DataContext="{Binding Source={StaticResource viewModel}}"
+                                  ItemsSource="{Binding SelectedTorrentTrackersViewModel}"
+                                  Background="Transparent"
+                                  RowBackground="Transparent"
+                                  CanUserAddRows="True" 
+                                  CanUserDeleteRows="True"
+                                  AutoGenerateColumns="False"
+                                  GridLinesVisibility="None">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Tracker Url" Binding="{Binding TrackerUrl}"></DataGridTextColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                    </TabItem>
+                </TabControl>
+            </Grid>
+        </Grid>
+    </DockPanel>
+</Window>
