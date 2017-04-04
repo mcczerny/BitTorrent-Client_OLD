@@ -173,6 +173,7 @@ namespace BitTorrent_Client.ViewModels
                 while (a_torrent.Started)
                 {
                     a_torrent.ProcessBlocks();
+                    Thread.Sleep(5000);
                 }
             });
 
@@ -190,11 +191,9 @@ namespace BitTorrent_Client.ViewModels
                 while (a_torrent.Started)
                 {
                     a_torrent.RequestBlocks();
-                    //Thread.Sleep(500);
+                    Thread.Sleep(5000);
                 }
             });
-
-
         }
 
         #endregion

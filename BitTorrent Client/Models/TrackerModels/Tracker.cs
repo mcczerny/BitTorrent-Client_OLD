@@ -2,6 +2,7 @@
 
 using BitTorrent_Client.Models.TorrentModels;
 using System;
+using System.Text;
 
 namespace BitTorrent_Client.Models.TrackerModels
 {
@@ -86,6 +87,34 @@ namespace BitTorrent_Client.Models.TrackerModels
         #region Methods
 
         public abstract void Update();
+
+        protected void ParsePeers(byte[] a_rawPeers)
+        {
+            var index = 0;
+            while (index < a_rawPeers.Length)
+            {
+                StringBuilder address = new StringBuilder();
+                for (var i = index; i < (index + 4); i++)
+                {
+                    address.Append(a_rawPeers[i]);
+                    if (i != (index + 3))
+                    {
+                        address.Append(".");
+                    }
+                }
+                address.Append(":");
+                index += 4;
+
+                // You must add the high and low bytes to get the port number.
+                var highByte = a_rawPeers[index];
+                var lowByte = a_rawPeers[index + 1];
+                address.Append((highByte * 256 + lowByte));
+
+                index += 2;
+
+                Peers.Add(address.ToString());
+            }
+        }
 
         #endregion
     }

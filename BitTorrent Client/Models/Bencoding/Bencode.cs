@@ -11,6 +11,27 @@ namespace BitTorrent_Client.Models.Bencoding
         // Stores the current character at m_index.
         private static char m_currChar;
 
+        /// <summary>
+        /// Decodes a bencoded byte array.
+        /// </summary>
+        /// <param name="a_file">Bencoded byte data that will be decoded.</param>
+        /// <returns>Returns a list of BDecodedObjects</returns>
+        /// <remarks>
+        /// BDecode()
+        /// 
+        /// SYNOPSIS
+        /// 
+        ///     List<BDecodedObject> BDecode(byte[] a_file)
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function will decode a bencoded byte array. It will start 
+        ///     at the beginning of the array and read until the end by using
+        ///     a while loop. Inside the while loop there is a switch statement
+        ///     that will read the next character and call the correct function
+        ///     to decode the bencoded type. As it decodes each type it will
+        ///     add the new object to the list of BDecodedObjects to return.
+        /// </remarks>
         public static List<BDecodedObject> BDecode(byte[] a_file)
         {
             List<BDecodedObject> decodedObjectList = new List<BDecodedObject>();

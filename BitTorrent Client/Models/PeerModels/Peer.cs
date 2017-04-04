@@ -244,28 +244,33 @@ namespace BitTorrent_Client.Models.PeerModels
         /// </remarks>
         public void Connect()
         {
+            // If the client is not already connected to the peer.
             if (m_client == null)
             {
+                // Creates a new tcp socket.
                 m_client = new Socket(
                     AddressFamily.InterNetwork,
                     SocketType.Stream,
                     ProtocolType.Tcp);
 
+                // Tries to connect client to the peer.
                 try
                 {
-
                     m_client.Connect(m_remoteEndPoint);
                     Connected = true;
                 }
+                // Catches exception and calls Disconnect()
                 catch (Exception e)
                 {
+                    Console.WriteLine(e.ToString());
                     Disconnect();
                     return;
                 }
             }
 
-
+            // Start listening from peer.
             Receive(m_client);
+            
             SendHandshake();
             if (HandshakeSent)
             {
@@ -275,18 +280,22 @@ namespace BitTorrent_Client.Models.PeerModels
 
         public void Disconnect()
         {
+            // If the client was connected to the peer set Connected to false.
             if (Connected)
             {
                 Connected = false;
             }
 
+            // If socket is/was connected we close our connection.
             if(m_client != null)
             {
                 m_client.Close();
             }
 
+            // Raise event to torrent object.
             Disconnected?.Invoke(this, new EventArgs());
         }
+
         #region Send Methods
 
         private void Send(byte[] a_message)
@@ -304,17 +313,16 @@ namespace BitTorrent_Client.Models.PeerModels
         }
 
         private void SendCallback(IAsyncResult ar)
-        {
+       { 
             try
             {
                 Socket client = (Socket)ar.AsyncState;
-
                 int bytesSent = client.EndSend(ar);
-                //Console.WriteLine("Send {0} bytes to server", bytesSent);
+                Console.WriteLine("Send {0} bytes to server", bytesSent);
             }
-            catch (Exception e)
+            catch 
             {
-                Console.WriteLine(e.ToString());
+                Disconnect();
             }
 
         }
@@ -328,6 +336,7 @@ namespace BitTorrent_Client.Models.PeerModels
                 //Send(EncodeBitfieldMessage())
             }
         }
+
 
         public void SendCancel(int a_index, int a_begin, int a_length)
         {
@@ -437,13 +446,14 @@ namespace BitTorrent_Client.Models.PeerModels
         private bool DecodeCancelMessage(byte[] a_message, out int a_index,
             out int a_begin, out int a_length)
         {
+            // Set base values.
             a_index = -1;
             a_begin = -1;
             a_length = -1;
 
+            // Cancel message length is not correct length.
             if (a_message.Length != 17 || a_message[3] != 13)
             {
-                Console.WriteLine("Invalid cancel message length");
                 return false;
             }
 
@@ -451,14 +461,17 @@ namespace BitTorrent_Client.Models.PeerModels
             byte[] beginBytes = Utility.SubArray(a_message, 9, 4);
             byte[] lengthBytes = Utility.SubArray(a_message, 13, 4);
 
+
+            // If the byte order of data is stored little endian then the 
+            // bytes need to be reversed.
             if (BitConverter.IsLittleEndian)
             {
                 Array.Reverse(indexBytes);
                 Array.Reverse(beginBytes);
                 Array.Reverse(lengthBytes);
-
             }
 
+            // Convert byte arrays to integers.
             a_index = BitConverter.ToInt32(indexBytes, 0);
             a_begin = BitConverter.ToInt32(beginBytes, 0);
             a_length = BitConverter.ToInt32(lengthBytes, 0);
@@ -468,20 +481,25 @@ namespace BitTorrent_Client.Models.PeerModels
 
         private bool DecodeHaveMessage(byte[] a_message, out int a_pieceIndex)
         {
+            // Set base value.
             a_pieceIndex = -1;
 
+            // Have message is not correct length.
             if (a_message.Length != 9)
             {
-                Console.WriteLine("Invalid have message length");
                 return false;
             }
 
             byte[] pieceIndex = Utility.SubArray(a_message, 5, 4);
+
+            // If the byte order of data is stored little endian then the 
+            // bytes need to be reversed.
             if (BitConverter.IsLittleEndian)
             {
                 Array.Reverse(pieceIndex);
             }
 
+            // Convert from byte array to integer.
             a_pieceIndex = BitConverter.ToInt32(pieceIndex, 0);
 
             return true;
@@ -489,8 +507,11 @@ namespace BitTorrent_Client.Models.PeerModels
 
         private bool DecodeHandshakeMessage(byte[] a_message, out byte[] a_infoHash)
         {
+            // Set base value.
             a_infoHash = new byte[20];
 
+            // Handshake message length is not correct length or the protocol
+            // string length is not 19.
             if (a_message.Length != 68 || a_message[0] != 19)
             {
                 return false;
@@ -509,6 +530,7 @@ namespace BitTorrent_Client.Models.PeerModels
 
         private bool DecodeKeepAliveMessage(byte[] a_message)
         {
+            // If the message length is not 4 bytes long or the bytes are not all 0
             if (a_message.Length != 4 || !a_message.SequenceEqual(new byte[] { 0, 0, 0, 0 }))
             {
                 return false;
@@ -516,6 +538,7 @@ namespace BitTorrent_Client.Models.PeerModels
 
             return true;
         }
+
 
         private bool DecodePeerState(byte[] a_message, int a_stateID)
         {
@@ -530,20 +553,25 @@ namespace BitTorrent_Client.Models.PeerModels
 
         private bool DecodePieceMessage(byte[] a_message, out int a_index, out int a_begin, out byte[] a_block)
         {
+            // Set base values.
             a_index = -1;
             a_begin = -1;
             a_block = new byte[0];
 
+            // If the piece message is too short.
             if (a_message.Length < 13)
             {
                 Console.WriteLine("Invalid piece message length");
                 return false;
             }
 
+
             byte[] lengthBytes = Utility.SubArray(a_message, 0, 4);
             byte[] indexBytes = Utility.SubArray(a_message, 5, 4);
             byte[] beginBytes = Utility.SubArray(a_message, 9, 4);
 
+            // If the byte order of data is stored little endian then the 
+            // bytes need to be reversed.
             if (BitConverter.IsLittleEndian)
             {
                 Array.Reverse(lengthBytes);
@@ -551,8 +579,10 @@ namespace BitTorrent_Client.Models.PeerModels
                 Array.Reverse(beginBytes);
             }
 
+            // The length of the block.
             int blockLength = (BitConverter.ToInt32(lengthBytes, 0) - 9);
 
+            // Convert from byte arrays to integer.
             a_index = BitConverter.ToInt32(indexBytes, 0);
             a_begin = BitConverter.ToInt32(beginBytes, 0);
             a_block = Utility.SubArray(a_message, 13, blockLength);
@@ -568,10 +598,12 @@ namespace BitTorrent_Client.Models.PeerModels
 
         private bool DecodeRequestMessage(byte[] a_message, out int a_index, out int a_begin, out int a_length)
         {
+            // Set base values.
             a_index = -1;
             a_begin = -1;
             a_length = -1;
 
+            // When the requeset message is not the correct length.
             if (a_message.Length != 17 || a_message[3] != 13)
             {
                 Console.WriteLine("Invalid request message");
@@ -582,6 +614,8 @@ namespace BitTorrent_Client.Models.PeerModels
             byte[] beginBytes = Utility.SubArray(a_message, 9, 4);
             byte[] lengthBytes = Utility.SubArray(a_message, 13, 4);
 
+            // If the byte order of data is stored little endian then the 
+            // bytes need to be reversed.
             if (BitConverter.IsLittleEndian)
             {
                 Array.Reverse(indexBytes);
@@ -589,6 +623,7 @@ namespace BitTorrent_Client.Models.PeerModels
                 Array.Reverse(lengthBytes);
             }
 
+            // Convert from byte arrays to integer.
             a_index = Convert.ToInt32(indexBytes);
             a_begin = Convert.ToInt32(beginBytes);
             a_length = Convert.ToInt32(lengthBytes);
@@ -859,26 +894,21 @@ namespace BitTorrent_Client.Models.PeerModels
             switch (messageType)
             {
                 case MessageType.Handshake:
-                    Console.WriteLine("Received a handshake message");
 
                     byte[] infoHash;
-
                     if (DecodeHandshakeMessage(a_message, out infoHash))
                     {
                         HandleHandshakeMessage(infoHash);
                     }
                     break;
                 case MessageType.KeepAlive:
-                    Console.WriteLine("Received a keep alive message");
 
                     if (DecodeKeepAliveMessage(a_message))
                     {
 
                     }
                     break;
-
                 case MessageType.Choke:
-                    //Console.WriteLine("Receieved a choke message");
 
                     if (DecodePeerState(a_message, (int)messageType))
                     {
@@ -886,7 +916,6 @@ namespace BitTorrent_Client.Models.PeerModels
                     }
                     break;
                 case MessageType.Unchoke:
-                    //Console.WriteLine("Received an unchoke message");
 
                     if (DecodePeerState(a_message, (int)messageType))
                     {
@@ -894,7 +923,6 @@ namespace BitTorrent_Client.Models.PeerModels
                     }
                     break;
                 case MessageType.Interested:
-                    Console.WriteLine("Received an interested message");
 
                     if (DecodePeerState(a_message, (int)messageType))
                     {
@@ -902,7 +930,6 @@ namespace BitTorrent_Client.Models.PeerModels
                     }
                     break;
                 case MessageType.NotInterested:
-                    Console.WriteLine("Received an not interested message");
 
                     if (DecodePeerState(a_message, (int)messageType))
                     {
@@ -910,18 +937,14 @@ namespace BitTorrent_Client.Models.PeerModels
                     }
                     break;
                 case MessageType.Have:
-                    //Console.WriteLine("Received a have message");
 
                     int haveIndex;
-
                     if (DecodeHaveMessage(a_message, out haveIndex))
                     {
                         HandleHaveMessage(haveIndex);
                     }
                     break;
                 case MessageType.Bitfield:
-
-                    Console.WriteLine("Received a bitfield message");
 
                     bool[] peerHasPiece;
                     if (!BitfieldReceived)
@@ -933,7 +956,6 @@ namespace BitTorrent_Client.Models.PeerModels
                     }
                     break;
                 case MessageType.Request:
-                    Console.WriteLine("Received a request message");
 
                     int requestIndex;
                     int requestBegin;
@@ -945,24 +967,20 @@ namespace BitTorrent_Client.Models.PeerModels
                     }
                     break;
                 case MessageType.Piece:
-                    //Console.WriteLine("Received a piece message");
 
                     int pieceIndex;
                     int pieceBegin;
                     byte[] pieceBlock;
-
                     if (DecodePieceMessage(a_message, out pieceIndex, out pieceBegin, out pieceBlock))
                     {
                         HandlePieceMessage(pieceIndex, pieceBegin, pieceBlock);
                     }
                     break;
                 case MessageType.Cancel:
-                    Console.WriteLine("Received a cancel message");
 
                     int cancelIndex;
                     int cancelBegin;
                     int cancelLength;
-
                     if (DecodeCancelMessage(a_message, out cancelIndex, out cancelBegin, out cancelLength))
                     {
                         HandleCancelMessage(cancelIndex, cancelBegin, cancelLength);
@@ -970,12 +988,8 @@ namespace BitTorrent_Client.Models.PeerModels
                     break;
                 case MessageType.Port:
 
-                    Console.WriteLine("Received a port message");
-
                     break;
                 default:
-
-                    Console.WriteLine("Received an unknown message");
 
                     break;
             }
@@ -1076,7 +1090,7 @@ namespace BitTorrent_Client.Models.PeerModels
                 a_client.BeginReceive(state.ReceiveBuffer, 0, AsyncStateObject.ReceiveBufferSize / 2, 0,
                     new AsyncCallback(ReceiveCallback), state);
             }
-            catch (Exception e)
+            catch 
             {
                 Disconnect();
             }
@@ -1093,7 +1107,7 @@ namespace BitTorrent_Client.Models.PeerModels
                 state.BytesRead = client.EndReceive(ar);
                 state.TotalBytesRead += state.BytesRead;
             }
-            catch (Exception e)
+            catch
             {
                 Disconnect();
                 return;
@@ -1117,7 +1131,7 @@ namespace BitTorrent_Client.Models.PeerModels
                 client.BeginReceive(state.ReceiveBuffer, state.TotalBytesRead,
                     AsyncStateObject.ReceiveBufferSize - state.TotalBytesRead, 0, new AsyncCallback(ReceiveCallback), state);
             }
-            catch (Exception e)
+            catch
             {
                 Disconnect();
                 return;

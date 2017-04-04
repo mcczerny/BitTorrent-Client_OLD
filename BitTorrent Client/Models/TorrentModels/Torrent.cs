@@ -365,6 +365,12 @@ namespace BitTorrent_Client.Models.TorrentModels
                 Trackers.Add(tracker);
                 tracker.PeerListUpdated += HandlePeerListUpdated; 
             }   
+            else
+            {
+                Tracker tracker = new UdpTracker(this, m_announceList[0]);
+                Trackers.Add(tracker);
+                tracker.PeerListUpdated += HandlePeerListUpdated;
+            }
         }
 
         /// <summary>
@@ -418,31 +424,40 @@ namespace BitTorrent_Client.Models.TorrentModels
 
         public void RequestBlocks()
         {
-
-            foreach (var peer in Seeders)
-            {
-              
+            foreach (var peer in Peers)
+            { 
                 var numberOfPieces = NumberOfPieces;
                 for (var piece = 0; piece < numberOfPieces; piece++)
                 {
-                    if (m_verifiedPieces[piece] || !peer.Value.HasPiece[piece])
+                    // If we already have a verified piece.
+                    if (m_verifiedPieces[piece])
                     {
                         continue;
                     }
 
+                    // If the peer does not have the piece.
+                    if (!peer.Value.HasPiece[piece])
+                    {
+                        continue;
+                    }
+
+
                     var numberOfBlocks = ComputeNumberOfBlocks(piece);
                     for (var block = 0; block < numberOfBlocks; block++)
                     {
+                        // If we already requested the block from some peer.
                         if (m_requestedBlocks[piece][block])
                         {
                             continue;
                         }
-                        if (m_haveBlocks[piece][block])
-                        {
-                            continue;
-                        }
 
-                        if(peer.Value.NumberOfBlocksRequested > 5)
+                        //// If we already have the block
+                        //if (m_haveBlocks[piece][block])
+                        //{
+                        //    continue;
+                        //}
+
+                        if(peer.Value.NumberOfBlocksRequested > 10)
                         {
                             continue;
                         }
@@ -464,29 +479,39 @@ namespace BitTorrent_Client.Models.TorrentModels
      
             foreach (var peer in Peers)
             {
+                // If a handshake has not been send or received, we can't do anything with that peer.
                 if (!peer.Value.HandshakeReceived && !peer.Value.HandshakeSent)
                 {
                     continue;
                 }
 
+                // If client has completed downloaded.
                 if (m_complete)
                 {
+                    // Send we are not intersted to to the peer because we no 
+                    // long want any files from that peer.
                     peer.Value.SendNotInterested();
 
+                    // When the client has fully downloaded and the peer has 
+                    // fully downnloaded from the peer then disconnect.
                     if (peer.Value.Complete)
                     {
                         peer.Value.Disconnect();
                     }
                 }
+                // When client has not completed downloading.
                 else
                 {
+                    // If an interested message has not been sent, send one.
                     if (!peer.Value.AmInterested)
                     {
                         peer.Value.SendInterested();
                     }
 
+                    // Send a keep alive message to avoid timeout.
                     peer.Value.SendKeepAliveMessage();
 
+                    
                     if(this.Started && Seeders.Count < 2)
                     {
                         if (!peer.Value.PeerChoking)
@@ -884,7 +909,7 @@ namespace BitTorrent_Client.Models.TorrentModels
                         file.Path += "\\";
                         file.Path += utf8.GetString(list.Value);
                     }
-
+                    
                     Files.Add(file);
                 }
             }
