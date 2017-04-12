@@ -48,7 +48,7 @@ namespace BitTorrent_Client.Models.PeerModels
         /// </summary>
         public static int ReceiveBufferSize
         {
-            get { return 500000; }
+            get { return 2098304; }
         }
 
         /// <summary>

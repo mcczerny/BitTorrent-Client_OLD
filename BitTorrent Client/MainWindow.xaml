@@ -8,7 +8,7 @@
         xmlns:vm="clr-namespace:BitTorrent_Client.ViewModels"
         xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
         mc:Ignorable="d"
-        Title="MainWindow" Height="350" Width="525">
+        Title="MainWindow" Height="356.4" Width="675.4">
     <Window.Resources>
         <tm:Torrent x:Key="torrent"/>
         <vm:ViewModelBase x:Key="viewModel"/>
@@ -28,28 +28,28 @@
         </Menu>
         <Grid>
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="60"/>
                 <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="5"/>
-                <ColumnDefinition Width="3*"/>
             </Grid.ColumnDefinitions>
 
 
             <Grid Grid.Column="0">
-                <TextBox Text="Side panel"/>
-
+                <ListView>
+                    <Button Command="{Binding Path=StartDownloadCommand, Source={StaticResource viewModel}}"
+                            CommandParameter="{Binding SelectedItems, ElementName=TorrentGrid}">Resume</Button>
+                    <Button Command="{Binding Path=PauseDownloadCommand, Source={StaticResource viewModel}}"
+                            CommandParameter="{Binding SelectedItems, ElementName=TorrentGrid}">Pause</Button>
+                </ListView>
+             
             </Grid>
 
-
-            <GridSplitter Grid.Column="1"                      
-                          Width="1"                  
-                          HorizontalAlignment="Stretch"/>
-
-            <Grid Grid.Column="2">
+            <Grid Grid.Column="1">
 
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="1*"/>
+                    <RowDefinition Height="71*"/>
+                    <RowDefinition Height="84*"/>
                     <RowDefinition Height="1"/>
-                    <RowDefinition Height="1*"/>
+                    <RowDefinition Height="154*"/>
                 </Grid.RowDefinitions>
 
 
@@ -60,9 +60,9 @@
                           AutoGenerateColumns="False" 
                           IsReadOnly="true"                   
                           GridLinesVisibility="None"                  
-                          Grid.RowSpan="3"
+                          Grid.RowSpan="4"
                           DataContext="{Binding Source={StaticResource viewModel}}"                       
-                          ItemsSource="{Binding TorrentViewModel}">
+                          ItemsSource="{Binding TorrentViewModel}" Margin="0,0,-0.4,-0.4">
 
                     <i:Interaction.Triggers>
                         <i:EventTrigger EventName="SelectionChanged">
@@ -79,26 +79,25 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Grid>
-                                        <ProgressBar Value="10"
-                                                     
+                                        <ProgressBar Value="{Binding CurrentProgress, Mode=OneWay}"             
                                                  Minimum="0"
-                                                 Maximum="100"/>
-                                        <TextBlock Text="6"
+                                                 Maximum="1"/>
+                                        <TextBlock Text="{Binding CurrentProgress, Mode=OneWay, StringFormat={}{0:P}}"
                                                    HorizontalAlignment="Center"
                                                    VerticalAlignment="Center"/>
                                     </Grid>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="Download Speed"/>
+                        <DataGridTextColumn Header="Download Speed" Binding="{Binding DownloadSpeed, Mode=OneWay}" />
                         <DataGridTextColumn Header="Upload Speed"/>
                     </DataGrid.Columns>
                 </DataGrid>
                 <GridSplitter Grid.Row="1" 
                               Height="5" 
-                              VerticalAlignment="Stretch"/>
+                              VerticalAlignment="Stretch" Margin="0,83.2,-0.4,150.6" Grid.RowSpan="3"/>
 
-                <TabControl Grid.Row="2">
+                <TabControl Grid.Row="2" Margin="0,0.6,-0.4,-0.4" Grid.RowSpan="2">
 
                     <TabItem Header="Files">
                         <DataGrid Background="Transparent"
@@ -131,11 +130,17 @@
                                   ItemsSource="{Binding SelectedTorrentFilesViewModel}">
                             <ListView.ItemTemplate>
                                 <DataTemplate>
-                                    <WrapPanel>
+                                    <StackPanel>
                                         <TextBlock Text="Name: "/>
                                         <TextBlock Text="{Binding Name}"/>
-                                    </WrapPanel>
+                                        <TextBlock Text="Total Size: "/>
+                                        <TextBlock Text="{Binding FileSize}"/>
+                                        <TextBlock Text="Created On: "/>
+                                        <TextBlock Text="{Binding CreationDate}"/>
+
+                                    </StackPanel>
                                 </DataTemplate>
+                             
                             </ListView.ItemTemplate>
                         </ListView>
                     </TabItem>
@@ -151,8 +156,7 @@
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="IP" Binding="{Binding IP}"/>
                                 <DataGridTextColumn Header="Port" Binding="{Binding Port}"/>
-                                <DataGridTextColumn Header="Client"/>
-                                <DataGridTextColumn Header="%"/>
+                                <DataGridTextColumn Header="Percentage Complete" Binding="{Binding CurrentProgress, Mode=OneWay, StringFormat={}{0:P}}"/>
                                 <DataGridTextColumn Header="Download Speed"/>
                                 <DataGridTextColumn Header="Upload Speed"/>
 

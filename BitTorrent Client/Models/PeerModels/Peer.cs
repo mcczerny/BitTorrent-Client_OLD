@@ -13,7 +13,7 @@ using BitTorrent_Client.Models.Utility_Functions;
 
 namespace BitTorrent_Client.Models.PeerModels
 {
-    public class Peer 
+    public class Peer : INotifyPropertyChanged
     {
         #region Fields
 
@@ -24,7 +24,10 @@ namespace BitTorrent_Client.Models.PeerModels
         //private NetworkStream m_networkStream;
         private Socket m_client;
 
+        private float m_currentProgress;
+
         private readonly int m_handshakeSize = 68;
+
 
         #endregion
 
@@ -54,7 +57,7 @@ namespace BitTorrent_Client.Models.PeerModels
 
         #region Events
 
-        private event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler PropertyChanged;
 
         private void OnPropertyChanged(string a_propertyName)
         {
@@ -62,11 +65,9 @@ namespace BitTorrent_Client.Models.PeerModels
         }
 
         public event EventHandler Disconnected;
-        public event EventHandler StateChanged;
         public event EventHandler<IncomingBlock> BlockReceived;
         public event EventHandler<OutgoingBlock> BlockRequested;
         public event EventHandler<OutgoingBlock> BlockCanceled;
-
 
         #endregion
 
@@ -189,6 +190,17 @@ namespace BitTorrent_Client.Models.PeerModels
             set;
         }
 
+        public float CurrentProgress
+        {
+            get { return m_currentProgress; }
+            set {
+                if (m_currentProgress != value)
+                {
+                    m_currentProgress = value;
+                    OnPropertyChanged("CurrentProgress");
+                }
+            }
+        }
         /// <summary>
         /// Get/Set the total number of blocks the client is requesting from 
         /// the peer.
@@ -309,7 +321,6 @@ namespace BitTorrent_Client.Models.PeerModels
             {
                 Disconnect();
             }
-
         }
 
         private void SendCallback(IAsyncResult ar)
@@ -317,8 +328,8 @@ namespace BitTorrent_Client.Models.PeerModels
             try
             {
                 Socket client = (Socket)ar.AsyncState;
-                int bytesSent = client.EndSend(ar);
-                Console.WriteLine("Send {0} bytes to server", bytesSent);
+                client.EndSend(ar);
+                //Console.WriteLine("Send {0} bytes to server", bytesSent);
             }
             catch 
             {
@@ -368,20 +379,20 @@ namespace BitTorrent_Client.Models.PeerModels
 
         public void SendInterested()
         {
-            //Console.WriteLine("Sending interested message");
+            Console.WriteLine("Sending interested message");
             AmInterested = true;
             Send(EncodeInterestedMessage());
         }
 
         public void SendKeepAliveMessage()
         {
-            //Console.WriteLine("Sending keep alive message");
+            Console.WriteLine("Sending keep alive message");
             Send(EncodeKeepAliveMessage());
         }
 
         public void SendNotInterested()
         {
-            //Console.WriteLine("Sending keep alive message");
+            Console.WriteLine("Sending keep alive message");
             AmInterested = false;
             Send(EncodeNotInterestedMessage());
         }
@@ -400,7 +411,7 @@ namespace BitTorrent_Client.Models.PeerModels
 
         public void SendRequest(int a_pieceIndex, int a_begin, int a_length)
         {
-            //Console.WriteLine("{0} Sending request message for piece {1} block {2}", IP, a_pieceIndex, a_begin/16384);
+            Console.WriteLine("{0} Sending request message for piece {1} block {2}", IP, a_pieceIndex, a_begin/16384);
             Send(EncodeRequestMessage(a_pieceIndex, a_begin, a_length));
         }
 
@@ -1007,8 +1018,16 @@ namespace BitTorrent_Client.Models.PeerModels
             {
                 HasPiece[i] = a_hasPiece[i];
             }
+            for(int i = 0; i < HasPiece.Length; i++)
+            {
+                if (HasPiece[i])
+                {
+                    CurrentProgress += m_torrent.ComputePieceLength(i);
+                }
+                
+            }
 
-            StateChanged?.Invoke(this, new EventArgs());
+            CurrentProgress = CurrentProgress / m_torrent.Length;
         }
 
         private void HandleCancelMessage(int a_index, int a_begin, int a_length)
@@ -1019,8 +1038,6 @@ namespace BitTorrent_Client.Models.PeerModels
         private void HandleChokeMessage()
         {
             PeerChoking = true;
-
-            StateChanged?.Invoke(this, new EventArgs());
         }
 
         private void HandleHaveMessage(int a_pieceIndex)
@@ -1028,8 +1045,6 @@ namespace BitTorrent_Client.Models.PeerModels
 
             // Add the piece to available pieces client can download.
             HasPiece[a_pieceIndex] = true;
-
-            StateChanged?.Invoke(this, new EventArgs());
         }
 
         private void HandleHandshakeMessage(byte[] a_infoHash)
@@ -1045,15 +1060,11 @@ namespace BitTorrent_Client.Models.PeerModels
         private void HandleInterestedMessage()
         {
             PeerInterested = true;
-
-            StateChanged?.Invoke(this, new EventArgs());
         }
 
         private void HandleNotInterestedMessage()
         {
             AmInterested = false;
-
-            StateChanged?.Invoke(this, new EventArgs());
         }
 
         private void HandlePieceMessage(int a_index, int a_begin, byte[] a_block)
@@ -1074,8 +1085,6 @@ namespace BitTorrent_Client.Models.PeerModels
         private void HandleUnchokeMessage()
         {
             PeerChoking = false;
-
-            StateChanged?.Invoke(this, new EventArgs());
         }
 
         #endregion
@@ -1130,6 +1139,7 @@ namespace BitTorrent_Client.Models.PeerModels
             {
                 client.BeginReceive(state.ReceiveBuffer, state.TotalBytesRead,
                     AsyncStateObject.ReceiveBufferSize - state.TotalBytesRead, 0, new AsyncCallback(ReceiveCallback), state);
+
             }
             catch
             {

@@ -3,13 +3,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-
 using BitTorrent_Client.Models.TorrentModels;
-using BitTorrent_Client.Models.PeerModels;
 using BitTorrent_Client.Models.TrackerModels;
 using BitTorrent_Client.ViewModels.Commands;
-using System;
-using System.Collections.Generic;
 
 namespace BitTorrent_Client.ViewModels
 {
@@ -17,6 +13,8 @@ namespace BitTorrent_Client.ViewModels
     {
         #region Fields
 
+       
+        
         private SelectedTorrentFilesViewModel m_selectedTorrentFilesViewModel;
         private SelectedTorrentInfoViewModel m_selectedTorrentInfoViewModel;
         private SelectedTorrentPeersViewModel m_selectedTorrentPeersViewModel;
@@ -37,12 +35,19 @@ namespace BitTorrent_Client.ViewModels
 
             this.OpenFileDialogCommand = new OpenFileDialogCommand(this, new OpenFileDialogViewModel());
             this.SelectionChangedCommand = new SelectionChangedCommand(this);
-
+            this.StartDownloadCommand = new StartDownloadCommand(this, SelectedTorrentInfoViewModel);
+            this.PauseDownloadCommand = new PauseDownloadCommand(this, SelectedTorrentInfoViewModel);
         }
 
         #endregion
 
         #region Properties
+
+        public PauseDownloadCommand PauseDownloadCommand
+        {
+            get;
+            set;
+        }
 
         public OpenFileDialogCommand OpenFileDialogCommand
         {
@@ -51,6 +56,12 @@ namespace BitTorrent_Client.ViewModels
         }
 
         public SelectionChangedCommand SelectionChangedCommand
+        {
+            get;
+            set;
+        }
+
+        public StartDownloadCommand StartDownloadCommand
         {
             get;
             set;
@@ -83,7 +94,9 @@ namespace BitTorrent_Client.ViewModels
         public TorrentViewModel TorrentViewModel
         {
             get { return m_torrentViewModel; }
-            set { m_torrentViewModel = value; }
+            set {
+                m_torrentViewModel = value;
+            }
         }
 
         #endregion
@@ -104,6 +117,11 @@ namespace BitTorrent_Client.ViewModels
 
         public void OpenFileDialog(Torrent a_torrent, Microsoft.Win32.OpenFileDialog a_openFileDialog)
         {
+            if(a_openFileDialog == null)
+            {
+                return;
+            }
+
             a_torrent = new Torrent();
 
             a_torrent.SaveDirectory = ChooseSaveDirectory();
@@ -112,16 +130,41 @@ namespace BitTorrent_Client.ViewModels
 
             TorrentViewModel.Add(a_torrent);
 
-            //a_torrent.VerifyTorrent();
+            Task UpdateTracker = Task.Run(() =>
+            {
+                a_torrent.VerifyTorrent();
+            });
 
-            Start(a_torrent);
+            if (!a_torrent.Complete)
+            {
+                Start(a_torrent);
+            }
+        }
+
+        public void PauseDownload(object parameter)
+        {
+            System.Collections.IList items = (System.Collections.IList)parameter;
+            var torrent = items.Cast<Torrent>().FirstOrDefault();
+
+            torrent.PausePeers();
+        }
+
+        public void StartDownload(object parameter)
+        {
+            System.Collections.IList items = (System.Collections.IList)parameter;
+            var torrent = items.Cast<Torrent>().FirstOrDefault();
+
+            Start(torrent);
+            torrent.ResumeDownloading();
 
         }
 
-        public void UpdateViews(object parameter)
+        public void UpdateSelectedTorrentViews(object parameter)
         {
+            
             System.Collections.IList items = (System.Collections.IList)parameter;
             var collection = items.Cast<Torrent>().FirstOrDefault();
+
 
             // Updates file tab.
             SelectedTorrentFilesViewModel.Clear();
@@ -153,7 +196,7 @@ namespace BitTorrent_Client.ViewModels
 
         #region Private Methods
 
-        private void Start(Torrent a_torrent)
+        public void Start(Torrent a_torrent)
         {
             a_torrent.Started = true;
 
@@ -163,7 +206,7 @@ namespace BitTorrent_Client.ViewModels
                 while (a_torrent.Started)
                 {
                     a_torrent.UpdateTrackers();
-                    Thread.Sleep(5000);
+                    Thread.Sleep(60000);
                 }
             });
 
@@ -173,31 +216,41 @@ namespace BitTorrent_Client.ViewModels
                 while (a_torrent.Started)
                 {
                     a_torrent.ProcessBlocks();
-                    Thread.Sleep(5000);
+                    Thread.Sleep(1000);
                 }
             });
 
+            // Will Update peers.
             Task UpdatePeers = Task.Run(() =>
             {
                 while (a_torrent.Started)
                 {
                     a_torrent.UpdatePeers();
-                    Thread.Sleep(5000);
+                    Thread.Sleep(15000);
                 }
             });
 
+            // Will request blocks.
             Task RequestBlocks = Task.Run(() =>
             {
                 while (a_torrent.Started)
                 {
                     a_torrent.RequestBlocks();
-                    Thread.Sleep(5000);
+                    Thread.Sleep(1000);
+                }
+            });
+
+            Task UpdateGUI = Task.Run(() =>
+            {
+                while (a_torrent.Started)
+                {
+                    a_torrent.ComputeDownloadSpeed();
+                    Thread.Sleep(2000);
                 }
             });
         }
 
         #endregion
-
 
         #endregion
     }

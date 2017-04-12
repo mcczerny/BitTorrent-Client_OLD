@@ -28,7 +28,7 @@ namespace BitTorrent_Client.Models.TrackerModels
             m_client = new UdpClient();
             // Finds the port.
             var separatedAddress = a_trackerUrl.Split(':');
-            m_port = Convert.ToInt32(separatedAddress[2]);
+            m_port = Convert.ToInt32(separatedAddress[2].Split('/')[0]);
 
             // Finds the address
             separatedAddress = separatedAddress[1].Split(new string[] { "//" }, StringSplitOptions.None);
@@ -48,7 +48,7 @@ namespace BitTorrent_Client.Models.TrackerModels
             byte[] eventType = BitConverter.GetBytes(2).Reverse().ToArray();
             byte[] key = new byte[4];
             new Random().NextBytes(key);
-            byte[] numWant = BitConverter.GetBytes(200).Reverse().ToArray();
+            byte[] numWant = BitConverter.GetBytes(5).Reverse().ToArray();
             Int16 port = 1337;
             Int16 extension = 521;
             byte[] portBytes = BitConverter.GetBytes(port).Reverse().ToArray();

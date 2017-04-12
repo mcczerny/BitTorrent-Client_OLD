@@ -42,6 +42,7 @@ namespace BitTorrent_Client.Models.TrackerModels
         override public void Update()
         {
             TimeSpan timeElasped = DateTime.Now.Subtract(m_lastUpdate);
+            
             if(timeElasped.Seconds > Interval)
             {
                 SendTrackerRequest();
@@ -106,58 +107,39 @@ namespace BitTorrent_Client.Models.TrackerModels
             requestUrl.Append("&uploaded=0");
             requestUrl.Append("&downloaded=0");
             requestUrl.Append("&left=1593835520");
-            requestUrl.Append("&numwant=5");
+            requestUrl.Append("&numwant=50");
             requestUrl.Append("&event=started");
             requestUrl.Append("&compact=1");
 
             return requestUrl.ToString();
         }
 
-        //private void ParsePeers(byte[] a_rawPeers)
-        //{
-        //    var index = 0;
-        //    while(index < a_rawPeers.Length)
-        //    {
-        //        StringBuilder address = new StringBuilder();
-        //        for(var i = index; i < (index + 4); i++)
-        //        {
-        //            address.Append(a_rawPeers[i]);
-        //            if(i != (index + 3))
-        //            {
-        //                address.Append(".");
-        //            }
-        //        }
-        //        address.Append(":");
-        //        index += 4;
-
-        //        // You must add the high and low bytes to get the port number.
-        //        var highByte = a_rawPeers[index];
-        //        var lowByte = a_rawPeers[index + 1];
-        //        address.Append((highByte * 256 + lowByte));
-
-        //        index += 2;
-
-        //        Peers.Add(address.ToString());
-        //    }
-        //}
-
         private void SendTrackerRequest()
         {
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(EncodeTrackerRequest());
-            HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+            try
+            {
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(EncodeTrackerRequest());
+                HttpWebResponse response = (HttpWebResponse)request.GetResponse();
 
-            var responseStream = response.GetResponseStream();
-            var memoryStream = new MemoryStream();
+                var responseStream = response.GetResponseStream();
+                var memoryStream = new MemoryStream();
 
-            responseStream.CopyTo(memoryStream);
-            byte[] rawTrackerResponse = memoryStream.ToArray();
+                responseStream.CopyTo(memoryStream);
+                byte[] rawTrackerResponse = memoryStream.ToArray();
 
-            var decodedResponse = Bencode.BDecode(rawTrackerResponse).ElementAt(0).Value;
+                var decodedResponse = Bencode.BDecode(rawTrackerResponse).ElementAt(0).Value;
 
-            DecodeResponse(decodedResponse);
+                DecodeResponse(decodedResponse);
 
-            // Call the base Torrent class invocation method.
-            //base.OnPeerListUpdated();
+                // Call the base Torrent class invocation method.
+                base.OnPeerListUpdated();
+            }
+            catch
+            {
+
+            }
+
+            
         }
 
         private string UrlEncodeHash(byte[] a_hash)

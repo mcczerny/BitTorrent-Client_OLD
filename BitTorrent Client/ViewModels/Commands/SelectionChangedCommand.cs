@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Windows.Input;
+using System.Linq;
 
+using BitTorrent_Client.Models.TorrentModels;
 namespace BitTorrent_Client.ViewModels.Commands
 {
     public class SelectionChangedCommand : ICommand
@@ -25,10 +27,8 @@ namespace BitTorrent_Client.ViewModels.Commands
         }
 
         public void Execute(object parameter)
-        {
-            this.ViewModel.UpdateViews(parameter as object);
+        { 
+            this.ViewModel.UpdateSelectedTorrentViews(parameter);
         }
-
-
     }
 }

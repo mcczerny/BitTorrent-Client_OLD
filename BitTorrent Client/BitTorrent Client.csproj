@@ -62,7 +62,9 @@
     <Compile Include="Models\PeerModels\IncomingBlock.cs" />
     <Compile Include="Models\PeerModels\OutgoingBlock.cs" />
     <Compile Include="ViewModels\Commands\OpenFileDialogCommand.cs" />
+    <Compile Include="ViewModels\Commands\PauseDownloadCommand.cs" />
     <Compile Include="ViewModels\Commands\SelectionChangedCommand.cs" />
+    <Compile Include="ViewModels\Commands\StartDownloadCommand.cs" />
     <Compile Include="ViewModels\OpenFileDialogViewModel.cs" />
     <Compile Include="ViewModels\SelectedTorrentFilesViewModel.cs" />
     <Compile Include="ViewModels\SelectedTorrentInfoViewModel.cs" />

@@ -37,9 +37,17 @@ namespace BitTorrent_Client.Models.TrackerModels
 
         #region Properties
 
+       
+        public DateTime LastUpdate
+        {
+            get { return m_lastUpdate; }
+            set { m_lastUpdate = value; }
+        }
+
         /// <summary>
         /// Get/Protected set a list of peers received from the tracker.
         /// </summary>
+        /// 
         public List<string> Peers
         {
             get;

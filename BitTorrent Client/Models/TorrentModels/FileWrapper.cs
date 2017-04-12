@@ -15,10 +15,22 @@ namespace BitTorrent_Client.Models.TorrentModels
             set;
         }
 
+        public long EndOffset
+        {
+            get;
+            set;
+        }
+
         /// <summary>
         /// Gets/Sets the length of the file.
         /// </summary>
         public long Length
+        {
+            get;
+            set;
+        }
+
+        public long StartOffset
         {
             get;
             set;

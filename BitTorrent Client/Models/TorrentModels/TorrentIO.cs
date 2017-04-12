@@ -10,6 +10,8 @@ namespace BitTorrent_Client.Models.TorrentModels
 {
     static class TorrentIO
     {
+        private static readonly Stream m_fileStream;
+
         #region Methods
 
         /// <summary>
@@ -100,22 +102,61 @@ namespace BitTorrent_Client.Models.TorrentModels
         /// </remarks>
         public static void WriteBlock(IncomingBlock a_block, Torrent a_torrent)
         {
-            var file = a_torrent.SaveDirectory + "\\" + a_torrent.Name;
+            //long startIndex = a_block.Index * a_torrent.PieceLength + 
+            //    a_block.Begin * a_torrent.BlockLength;
+            //long endIndex = startIndex + a_block.Block.Length;
 
-            if (!File.Exists(file))
+            //FileWrapper file;
+            //for (var i = 0; i < a_torrent.Files.Count; i++)
+            //{
+            //    if (a_torrent.Files[i].StartOffset > startIndex ||
+            //        a_torrent.Files[i].EndOffset < startIndex)
+            //    {
+            //        continue;
+            //    }
+
+            //else if(a_torrent.Files[i].StartOffset > startIndex)
+
+
+            //}
+            if (a_torrent.Files.Count == 1)
             {
-                using (Stream fileStream = new FileStream(file, FileMode.Create, FileAccess.Write))
+                var file = a_torrent.SaveDirectory + "\\" + a_torrent.Name;
+
+                Stream fileStream = new FileStream(file, FileMode.OpenOrCreate, FileAccess.Write);
+                if (!File.Exists(file))
                 {
-                    fileStream.SetLength(a_torrent.Length);
+                    using (fileStream)
+                    {
+                        fileStream.SetLength(a_torrent.Length);
+                    }
                 }
-            }
 
-            using (Stream fileStream = new FileStream(file, FileMode.Open, FileAccess.Write))
-            {
-                fileStream.Position = a_block.Index * a_torrent.PieceLength + a_block.Begin;
-                //fileStream.Seek(pieceIndex + a_block.Begin, SeekOrigin.Begin);
-                fileStream.Write(a_block.Block, 0, a_block.Block.Length);
+                using (fileStream)
+                {
+                    fileStream.Position = a_block.Index * a_torrent.PieceLength + a_block.Begin;
+                    fileStream.Write(a_block.Block, 0, a_block.Block.Length);
+                }
+                a_torrent.HaveBlocks[a_block.Index][a_block.Begin/a_torrent.BlockLength] = true;
+
             }
+            //else
+            //{
+            //    long startByte = a_block.Index * a_torrent.PieceLength;
+
+            //    FileWrapper currentFile;
+            //    long totalLength = 0;
+            //    for(var i = 0; i < a_torrent.Files.Count; i++)
+            //    {
+            //        totalLength = a_torrent.Files[i].Length * a_torrent.PieceLength;
+            //        if(totalLength > startByte)
+            //        {
+            //            currentFile = a_torrent.Files[i];
+
+            //        }
+            //    }
+            //}
+
         }
 
         #endregion
