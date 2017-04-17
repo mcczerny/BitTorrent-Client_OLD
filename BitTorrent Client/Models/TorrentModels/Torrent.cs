@@ -18,13 +18,12 @@ namespace BitTorrent_Client.Models.TorrentModels
     public class Torrent : INotifyPropertyChanged
     {
         #region Fields
-
-        private int numfailed = 0;
-        public ManualResetEvent downloadSpeedResetEvent = new ManualResetEvent(false);
         
         // Stores the announce url's for all trackers parsed from .torrent file.
         List<string> m_announceList = new List<string>();
 
+        private Dictionary<int, int> m_downloadOrder = new Dictionary<int, int>();
+        private Dictionary<int, int> m_pieceOccurances = new Dictionary<int, int>();
         private DateTime m_lastUpdate;
         // Stores the verified pieces that have been downloaded.
         private bool[] m_verifiedPieces;
@@ -66,7 +65,6 @@ namespace BitTorrent_Client.Models.TorrentModels
             Files = new ObservableCollection<FileWrapper>();
             IncomingBlocks = new ConcurrentQueue<IncomingBlock>();
             Trackers = new ObservableCollection<Tracker>();
-
         }
 
         #endregion
@@ -80,6 +78,16 @@ namespace BitTorrent_Client.Models.TorrentModels
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(a_propertyName));
         }
 
+        private void HandleBitfieldRecieved(object a_peer, EventArgs a_args)
+        {
+            var peer = a_peer as Peer;
+            for(var i = 0; i < NumberOfPieces; i++)
+            {
+                m_pieceOccurances[i]++;
+            }
+
+            //ComputeRarestPieces();
+        }
         private void HandleBlockCanceled(object a_peer, OutgoingBlock a_block)
         {
 
@@ -103,6 +111,10 @@ namespace BitTorrent_Client.Models.TorrentModels
 
         }
 
+        private void HandleHaveReceived(object a_peer, EventArgs a_args)
+        {
+
+        }
         private void HandlePeerDisconnected(object a_peer, EventArgs a_args)
         {
             var peer = (Peer)a_peer;
@@ -200,7 +212,9 @@ namespace BitTorrent_Client.Models.TorrentModels
         public bool[][] HaveBlocks
         {
             get { return m_haveBlocks; }
+            set { m_haveBlocks = value; }
         }
+
         /// <summary>
         /// Stores if all the files have been downloaded.
         /// </summary>
@@ -383,15 +397,7 @@ namespace BitTorrent_Client.Models.TorrentModels
 
         #region Public Methods
 
-        public void Resume()
-        {
-            downloadSpeedResetEvent.Set();
-        }
-
-        public void Pause()
-        {
-            downloadSpeedResetEvent.Reset();
-        }
+   
 
         public void ComputeDownloadSpeed()
         {
@@ -403,10 +409,7 @@ namespace BitTorrent_Client.Models.TorrentModels
             }
 
             var now = DateTime.Now;
-
-            //downloadSpeedResetEvent.WaitOne();
             var timeSpan = DateTime.Now - m_lastUpdate;
-
             if(timeSpan.Seconds > 2)
             {
                 var byteChange = m_downloaded - m_downloadedSince;
@@ -418,6 +421,43 @@ namespace BitTorrent_Client.Models.TorrentModels
 
         }
 
+        public void EndGameRequestBlocks()
+        {
+            Console.WriteLine("Endgame request");
+            foreach (var peer in Seeders)
+            {
+                ComputeRarestPieces();
+                foreach (var piece in m_downloadOrder)
+                {
+                    // If we already have a verified piece or if the peer does
+                    // not have the piece.
+                    if (m_verifiedPieces[piece.Key] || !peer.Value.HasPiece[piece.Key])
+                    {
+                        continue;
+                    }
+
+                    for (var block = 0; block < ComputeNumberOfBlocks(piece.Key); block++)
+                    {
+                        if (m_haveBlocks[piece.Key][block])
+                        {
+                            continue;
+                        }
+                       
+                        if (peer.Value.NumberOfBlocksRequested > m_maxPeerRequest)
+                        {
+                            continue;
+                        }
+
+                        var blockLength = ComputeBlockLength(piece.Key, block);
+                        peer.Value.SendRequest(piece.Key, block * blockLength, blockLength);
+                        m_requestedBlocks[piece.Key][block] = true;
+
+                        peer.Value.NumberOfBlocksRequested++;
+                    }
+                }
+            }
+        }
+    
         public void ResumeDownloading()
         {
             foreach(var tracker in Trackers)
@@ -479,7 +519,7 @@ namespace BitTorrent_Client.Models.TorrentModels
                 tracker.PeerListUpdated += HandlePeerListUpdated;
             }
 
-            m_maxPeerRequest = ComputeNumberOfBlocks(0)*2;
+            m_maxPeerRequest = ComputeNumberOfBlocks(0);
         }
 
         /// <summary>
@@ -546,9 +586,6 @@ namespace BitTorrent_Client.Models.TorrentModels
                         // Clear array and mark as unrequested when piece hash does not match.
                         Array.Clear(m_haveBlocks[index], 0, m_haveBlocks[index].Length);
                         m_requestedBlocks[index] = m_haveBlocks[index];
-                        numfailed++; 
-                        Console.WriteLine("Piece {0} failed verification", index);
-                        Console.WriteLine("Total number failed: {0}", numfailed);
                     }
                 }
             }
@@ -557,22 +594,63 @@ namespace BitTorrent_Client.Models.TorrentModels
         public void RequestBlocks()
         {
 
+            //foreach (var peer in Seeders)
+            //{
+
+            //    for (var piece = 0; piece < NumberOfPieces; piece++)
+            //    {
+            //        // If we already have a verified piece or if the peer does
+            //        // not have the piece.
+            //        if (m_verifiedPieces[piece] || !peer.Value.HasPiece[piece])
+            //        {
+            //            continue;
+            //        }
+
+            //        for (var block = 0; block < ComputeNumberOfBlocks(piece); block++)
+            //        {
+            //            if(m_haveBlocks[piece][block])
+            //            {
+            //                continue;
+            //            }
+            //            // If we already requested the block from some peer.
+            //            if (m_requestedBlocks[piece][block])
+            //            {
+            //                continue;
+            //            }
+
+            //            if (peer.Value.NumberOfBlocksRequested > m_maxPeerRequest)
+            //            {
+            //                continue;
+            //            }
+
+            //            var blockLength = ComputeBlockLength(piece, block);
+            //            peer.Value.SendRequest(piece, block * blockLength, blockLength);
+            //            m_requestedBlocks[piece][block] = true;
+
+            //            peer.Value.NumberOfBlocksRequested++;
+            //        }
+            //    }
+            //}
             foreach (var peer in Seeders)
             {
-
-                for (var piece = 0; piece < NumberOfPieces; piece++)
-                {
+                ComputeRarestPieces();
+                foreach(var piece in m_downloadOrder)
+                { 
                     // If we already have a verified piece or if the peer does
                     // not have the piece.
-                    if (m_verifiedPieces[piece] || !peer.Value.HasPiece[piece])
+                    if (m_verifiedPieces[piece.Key] || !peer.Value.HasPiece[piece.Key])
                     {
                         continue;
                     }
 
-                    for (var block = 0; block < ComputeNumberOfBlocks(piece); block++)
+                    for (var block = 0; block < ComputeNumberOfBlocks(piece.Key); block++)
                     {
+                        if (m_haveBlocks[piece.Key][block])
+                        {
+                            continue;
+                        }
                         // If we already requested the block from some peer.
-                        if (m_requestedBlocks[piece][block] || m_haveBlocks[piece][block])
+                        if (m_requestedBlocks[piece.Key][block])
                         {
                             continue;
                         }
@@ -582,9 +660,10 @@ namespace BitTorrent_Client.Models.TorrentModels
                             continue;
                         }
 
-                        var blockLength = ComputeBlockLength(piece, block);
-                        peer.Value.SendRequest(piece, block * blockLength, blockLength);
-                        //m_requestedBlocks[piece][block] = true;
+                        var blockLength = ComputeBlockLength(piece.Key, block);
+                        peer.Value.SendRequest(piece.Key, block * blockLength, blockLength);
+                        m_requestedBlocks[piece.Key][block] = true;
+
                         peer.Value.NumberOfBlocksRequested++;
                     }
                 }
@@ -628,7 +707,7 @@ namespace BitTorrent_Client.Models.TorrentModels
                     // Send a keep alive message to avoid timeout.
                     peer.Value.SendKeepAliveMessage();
 
-                    if (this.Started && Seeders.Count < 25)
+                    if (this.Started && Seeders.Count < 50)
                     {
                         if (!peer.Value.PeerChoking)
                         {
@@ -685,7 +764,24 @@ namespace BitTorrent_Client.Models.TorrentModels
                 }
 
             }
-            m_requestedBlocks = m_haveBlocks;
+
+            m_requestedBlocks = new bool[NumberOfPieces][];
+            for (var i = 0; i < NumberOfPieces; i++)
+            {
+                m_requestedBlocks[i] = new bool[ComputeNumberOfBlocks(i)];
+                if (File.Exists(SaveDirectory + "\\" + Name))
+                {
+                    if (VerifyPiece(i))
+                    {
+                        for (var j = 0; j < ComputeNumberOfBlocks(i); j++)
+                        {
+                            m_requestedBlocks[i][j] = true;
+                        }
+
+                    }
+                }
+
+            }
 
             if (!m_verifiedPieces.OfType<bool>().Contains(false))
             {
@@ -907,6 +1003,14 @@ namespace BitTorrent_Client.Models.TorrentModels
             return (int)PieceLength;
         }
 
+        private void ComputeRarestPieces()
+        {
+            m_downloadOrder.Clear();
+            foreach(var item in m_pieceOccurances.OrderBy(i => i.Value))
+            {
+                m_downloadOrder.Add(item.Key, item.Value);
+            }
+        }
         /// <summary>
         /// Decodes the torrent.
         /// </summary>
@@ -931,7 +1035,11 @@ namespace BitTorrent_Client.Models.TorrentModels
             SetMetaData(decodedData.ElementAt(0).Value);
 
             ComputeInfoHash();
-            
+               
+            for(var i = 0; i < NumberOfPieces; i++)
+            {
+                m_pieceOccurances.Add(i, 0);
+            }
         }
 
         /// <summary>
@@ -1175,11 +1283,12 @@ namespace BitTorrent_Client.Models.TorrentModels
         private void SetPeerEventHandlers(Peer a_peer)
         {
             // Set event handlers.
+            a_peer.BitfieldRecieved += HandleBitfieldRecieved;
             a_peer.Disconnected += HandlePeerDisconnected;
+            a_peer.HaveRecieved += HandleHaveReceived;
             a_peer.BlockRequested += HandleBlockRequested;
             a_peer.BlockCanceled += HandleBlockCanceled;
             a_peer.BlockReceived += HandleBlockReceived;
-
             // Connect to peer.
             a_peer.Connect();
 

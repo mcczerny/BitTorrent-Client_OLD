@@ -136,6 +136,7 @@ namespace BitTorrent_Client.Models.TorrentModels
                 {
                     fileStream.Position = a_block.Index * a_torrent.PieceLength + a_block.Begin;
                     fileStream.Write(a_block.Block, 0, a_block.Block.Length);
+
                 }
                 a_torrent.HaveBlocks[a_block.Index][a_block.Begin/a_torrent.BlockLength] = true;
 

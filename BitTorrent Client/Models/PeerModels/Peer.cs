@@ -64,7 +64,9 @@ namespace BitTorrent_Client.Models.PeerModels
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(a_propertyName));
         }
 
+        public event EventHandler BitfieldRecieved;
         public event EventHandler Disconnected;
+        public event EventHandler HaveRecieved;
         public event EventHandler<IncomingBlock> BlockReceived;
         public event EventHandler<OutgoingBlock> BlockRequested;
         public event EventHandler<OutgoingBlock> BlockCanceled;
@@ -115,7 +117,7 @@ namespace BitTorrent_Client.Models.PeerModels
         /// <summary>
         /// Get/Set if the client has received a bitfield message.
         /// </summary>
-        public bool BitfieldReceived
+        public bool IsBitfieldReceived
         {
             get;
             set;
@@ -124,7 +126,7 @@ namespace BitTorrent_Client.Models.PeerModels
         /// <summary>
         /// Get/Set if the bitfield has been sent to the peer.
         /// </summary>
-        public bool BitfieldSent
+        public bool IsBitfieldSent
         {
             get;
             set;
@@ -411,7 +413,7 @@ namespace BitTorrent_Client.Models.PeerModels
 
         public void SendRequest(int a_pieceIndex, int a_begin, int a_length)
         {
-            Console.WriteLine("{0} Sending request message for piece {1} block {2}", IP, a_pieceIndex, a_begin/16384);
+            //Console.WriteLine("{0} Sending request message for piece {1} block {2}", IP, a_pieceIndex, a_begin/16384);
             Send(EncodeRequestMessage(a_pieceIndex, a_begin, a_length));
         }
 
@@ -958,7 +960,7 @@ namespace BitTorrent_Client.Models.PeerModels
                 case MessageType.Bitfield:
 
                     bool[] peerHasPiece;
-                    if (!BitfieldReceived)
+                    if (!IsBitfieldReceived)
                     {
                         if (DecodeBitfieldMessage(a_message, out peerHasPiece))
                         {
@@ -1010,7 +1012,7 @@ namespace BitTorrent_Client.Models.PeerModels
 
         private void HandleBitfieldMessage(bool[] a_hasPiece)
         {
-            BitfieldReceived = true;
+            IsBitfieldReceived = true;
 
             HasPiece = new bool[a_hasPiece.Length];
 
@@ -1028,6 +1030,7 @@ namespace BitTorrent_Client.Models.PeerModels
             }
 
             CurrentProgress = CurrentProgress / m_torrent.Length;
+            BitfieldRecieved?.Invoke(this, new EventArgs());
         }
 
         private void HandleCancelMessage(int a_index, int a_begin, int a_length)
@@ -1042,7 +1045,6 @@ namespace BitTorrent_Client.Models.PeerModels
 
         private void HandleHaveMessage(int a_pieceIndex)
         {
-
             // Add the piece to available pieces client can download.
             HasPiece[a_pieceIndex] = true;
         }
@@ -1051,7 +1053,7 @@ namespace BitTorrent_Client.Models.PeerModels
         {
             if (!SameHash(a_infoHash))
             {
-                //Disconnect();
+                Disconnect();
                 return;
             }
             HandshakeReceived = true;
@@ -1121,8 +1123,9 @@ namespace BitTorrent_Client.Models.PeerModels
                 Disconnect();
                 return;
             }
-        
+          
             int messageLength = GetMessageLength(state.ReceiveBuffer);
+            
             while (state.TotalBytesRead >= messageLength)
             {
                 byte[] messageData = Utility.SubArray(state.ReceiveBuffer, 0, messageLength);
@@ -1134,12 +1137,16 @@ namespace BitTorrent_Client.Models.PeerModels
 
                 messageLength = GetMessageLength(state.ReceiveBuffer);
             }
-
+            if (m_torrent.Complete)
+            {
+                Disconnect();
+                return;
+            }
             try
             {
+             
                 client.BeginReceive(state.ReceiveBuffer, state.TotalBytesRead,
                     AsyncStateObject.ReceiveBufferSize - state.TotalBytesRead, 0, new AsyncCallback(ReceiveCallback), state);
-
             }
             catch
             {

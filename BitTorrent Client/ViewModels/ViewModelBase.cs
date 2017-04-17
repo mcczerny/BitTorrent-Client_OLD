@@ -13,8 +13,6 @@ namespace BitTorrent_Client.ViewModels
     {
         #region Fields
 
-       
-        
         private SelectedTorrentFilesViewModel m_selectedTorrentFilesViewModel;
         private SelectedTorrentInfoViewModel m_selectedTorrentInfoViewModel;
         private SelectedTorrentPeersViewModel m_selectedTorrentPeersViewModel;
@@ -130,11 +128,11 @@ namespace BitTorrent_Client.ViewModels
 
             TorrentViewModel.Add(a_torrent);
 
-            Task UpdateTracker = Task.Run(() =>
+            Task VerifyTorrent = Task.Run(() =>
             {
                 a_torrent.VerifyTorrent();
             });
-
+            VerifyTorrent.Wait();
             if (!a_torrent.Complete)
             {
                 Start(a_torrent);
@@ -210,15 +208,15 @@ namespace BitTorrent_Client.ViewModels
                 }
             });
 
-            // Will check if there are any blocks to process.
-            Task ProcessBlocks = Task.Run(() =>
-            {
-                while (a_torrent.Started)
-                {
-                    a_torrent.ProcessBlocks();
-                    Thread.Sleep(1000);
-                }
-            });
+           // Will check if there are any blocks to process.
+           Task ProcessBlocks = Task.Run(() =>
+           {
+               while (a_torrent.Started)
+               {
+                   a_torrent.ProcessBlocks();
+                   Thread.Sleep(1000);
+               }
+           });
 
             // Will Update peers.
             Task UpdatePeers = Task.Run(() =>
@@ -235,8 +233,18 @@ namespace BitTorrent_Client.ViewModels
             {
                 while (a_torrent.Started)
                 {
-                    a_torrent.RequestBlocks();
+                    if (a_torrent.CurrentProgress < .95)
+                    {
+                        a_torrent.RequestBlocks();
+                    }
+                    else
+                    {
+                        a_torrent.EndGameRequestBlocks();
+                    }
                     Thread.Sleep(1000);
+                    //a_torrent.ProcessBlocks();
+                    //Thread.Sleep(1000);
+
                 }
             });
 
@@ -244,6 +252,7 @@ namespace BitTorrent_Client.ViewModels
             {
                 while (a_torrent.Started)
                 {
+                  
                     a_torrent.ComputeDownloadSpeed();
                     Thread.Sleep(2000);
                 }

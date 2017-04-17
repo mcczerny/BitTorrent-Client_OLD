@@ -106,8 +106,10 @@ namespace BitTorrent_Client.Models.TrackerModels
             requestUrl.Append("&port=8999");
             requestUrl.Append("&uploaded=0");
             requestUrl.Append("&downloaded=0");
-            requestUrl.Append("&left=1593835520");
-            requestUrl.Append("&numwant=50");
+            //requestUrl.Append("&left=1593835520");
+            requestUrl.Append("&left=");
+            requestUrl.Append(m_torrent.Length);
+            requestUrl.Append("&numwant=100");
             requestUrl.Append("&event=started");
             requestUrl.Append("&compact=1");
 
