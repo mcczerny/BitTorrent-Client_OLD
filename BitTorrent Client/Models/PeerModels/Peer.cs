@@ -19,16 +19,14 @@ namespace BitTorrent_Client.Models.PeerModels
 
         private IPEndPoint m_remoteEndPoint;
         private Torrent m_torrent;
-
-        //private TcpClient m_client;
-        //private NetworkStream m_networkStream;
+        
         private Socket m_client;
 
         private float m_currentProgress;
 
         private readonly int m_handshakeSize = 68;
 
-
+        private string m_downloadSpeed;
         #endregion
 
         #region Constructors
@@ -66,7 +64,7 @@ namespace BitTorrent_Client.Models.PeerModels
 
         public event EventHandler BitfieldRecieved;
         public event EventHandler Disconnected;
-        public event EventHandler HaveRecieved;
+        public event EventHandler<int> HaveRecieved;
         public event EventHandler<IncomingBlock> BlockReceived;
         public event EventHandler<OutgoingBlock> BlockRequested;
         public event EventHandler<OutgoingBlock> BlockCanceled;
@@ -96,6 +94,11 @@ namespace BitTorrent_Client.Models.PeerModels
 
         #region Properties
 
+        public DateTime LastUpdate
+        {
+            get;
+            set;
+        }
         /// <summary>
         /// Get/Set if client is choking peer.
         /// </summary>
@@ -203,6 +206,7 @@ namespace BitTorrent_Client.Models.PeerModels
                 }
             }
         }
+
         /// <summary>
         /// Get/Set the total number of blocks the client is requesting from 
         /// the peer.
@@ -222,6 +226,18 @@ namespace BitTorrent_Client.Models.PeerModels
             private set;
         }
 
+        public long DownloadedSince
+        {
+            get;
+            set;
+        }
+
+        public long Downloaded
+        {
+            get;
+            set;
+        }
+
         /// <summary>
         /// Get/Private set the IP address of the peer.
         /// </summary>
@@ -231,6 +247,18 @@ namespace BitTorrent_Client.Models.PeerModels
             private set;
         }
 
+        public string DownloadSpeed
+        {
+            get { return m_downloadSpeed; }
+            set
+            {
+                if (m_downloadSpeed != value)
+                {
+                    m_downloadSpeed = value;
+                    OnPropertyChanged("DownloadSpeed");
+                }
+            }
+        }
         #endregion
 
         #region Methods
@@ -1047,6 +1075,8 @@ namespace BitTorrent_Client.Models.PeerModels
         {
             // Add the piece to available pieces client can download.
             HasPiece[a_pieceIndex] = true;
+
+            HaveRecieved?.Invoke(this, a_pieceIndex);
         }
 
         private void HandleHandshakeMessage(byte[] a_infoHash)

@@ -157,7 +157,7 @@
                                 <DataGridTextColumn Header="IP" Binding="{Binding IP}"/>
                                 <DataGridTextColumn Header="Port" Binding="{Binding Port}"/>
                                 <DataGridTextColumn Header="Percentage Complete" Binding="{Binding CurrentProgress, Mode=OneWay, StringFormat={}{0:P}}"/>
-                                <DataGridTextColumn Header="Download Speed"/>
+                                <DataGridTextColumn Header="Download Speed" Binding="{Binding DownloadSpeed}"/>
                                 <DataGridTextColumn Header="Upload Speed"/>
 
                             </DataGrid.Columns>

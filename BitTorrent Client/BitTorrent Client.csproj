@@ -99,7 +99,7 @@
     <Compile Include="Models\TrackerModels\HttpTracker.cs" />
     <Compile Include="Models\TrackerModels\Tracker.cs" />
     <Compile Include="Models\TrackerModels\UdpTracker.cs" />
-    <Compile Include="Models\Utility Functions\Utility.cs" />
+    <Compile Include="Models\Utility\Utility.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>

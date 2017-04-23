@@ -27,8 +27,11 @@ namespace BitTorrent_Client.ViewModels.Commands
         }
 
         public void Execute(object parameter)
-        { 
-            this.ViewModel.UpdateSelectedTorrentViews(parameter);
+        {
+            System.Collections.IList items = (System.Collections.IList)parameter;
+            var torrent = items.Cast<Torrent>().FirstOrDefault();
+
+            this.ViewModel.UpdateSelectedTorrentViews(torrent);
         }
     }
 }

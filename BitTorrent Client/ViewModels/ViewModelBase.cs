@@ -12,7 +12,7 @@ namespace BitTorrent_Client.ViewModels
     public class ViewModelBase
     {
         #region Fields
-
+        private Torrent m_selectedTorrent;
         private SelectedTorrentFilesViewModel m_selectedTorrentFilesViewModel;
         private SelectedTorrentInfoViewModel m_selectedTorrentInfoViewModel;
         private SelectedTorrentPeersViewModel m_selectedTorrentPeersViewModel;
@@ -159,14 +159,14 @@ namespace BitTorrent_Client.ViewModels
 
         public void UpdateSelectedTorrentViews(object parameter)
         {
-            
-            System.Collections.IList items = (System.Collections.IList)parameter;
-            var collection = items.Cast<Torrent>().FirstOrDefault();
+            //System.Collections.IList items = (System.Collections.IList)parameter;
+            //m_selectedTorrent = items.Cast<Torrent>().FirstOrDefault();
+            m_selectedTorrent = parameter as Torrent;
 
 
             // Updates file tab.
             SelectedTorrentFilesViewModel.Clear();
-            foreach (FileWrapper file in collection.Files)
+            foreach (FileWrapper file in m_selectedTorrent.Files)
             {
                 SelectedTorrentFilesViewModel.Add(file);
             }
@@ -177,14 +177,14 @@ namespace BitTorrent_Client.ViewModels
 
             // Need to update peers tab.
             SelectedTorrentPeersViewModel.Clear();
-            foreach (var peer in collection.Peers)
+            foreach (var peer in m_selectedTorrent.Peers)
             {
                 SelectedTorrentPeersViewModel.Add(peer.Value);
             }
 
             // Updates tracker tab.
             SelectedTorrentTrackersViewModel.Clear();
-            foreach (Tracker tracker in collection.Trackers)
+            foreach (Tracker tracker in m_selectedTorrent.Trackers)
             {
                 SelectedTorrentTrackersViewModel.Add(tracker);
             }
@@ -248,17 +248,24 @@ namespace BitTorrent_Client.ViewModels
                 }
             });
 
+            var uiContext = SynchronizationContext.Current;
+
             Task UpdateGUI = Task.Run(() =>
             {
                 while (a_torrent.Started)
                 {
-                  
+                    if(m_selectedTorrent != null)
+                    {
+                        uiContext.Send(x => UpdateSelectedTorrentViews(m_selectedTorrent), null);
+                    }
                     a_torrent.ComputeDownloadSpeed();
                     Thread.Sleep(2000);
                 }
             });
         }
 
+
+        
         #endregion
 
         #endregion
