@@ -27,33 +27,23 @@
             <MenuItem Header="_Help"/>
         </Menu>
         <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="60"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-
-
-            <Grid Grid.Column="0">
-                <ListView>
-                    <Button Command="{Binding Path=StartDownloadCommand, Source={StaticResource viewModel}}"
-                            CommandParameter="{Binding SelectedItems, ElementName=TorrentGrid}">Resume</Button>
-                    <Button Command="{Binding Path=PauseDownloadCommand, Source={StaticResource viewModel}}"
-                            CommandParameter="{Binding SelectedItems, ElementName=TorrentGrid}">Pause</Button>
-                </ListView>
-             
-            </Grid>
-
-            <Grid Grid.Column="1">
+      
 
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="71*"/>
-                    <RowDefinition Height="84*"/>
-                    <RowDefinition Height="1"/>
-                    <RowDefinition Height="154*"/>
+                <RowDefinition Height="25"/>
+                <RowDefinition Height="*"/>
+                    <RowDefinition Height="5"/>
+                    <RowDefinition Height="*"/>
+
                 </Grid.RowDefinitions>
+            <WrapPanel>
+                <Button Command="{Binding Path=StartDownloadCommand, Source={StaticResource viewModel}}"
+                            CommandParameter="{Binding SelectedItems, ElementName=TorrentGrid}" Background="#FFA8FF96">Resume</Button>
+                <Button Command="{Binding Path=PauseDownloadCommand, Source={StaticResource viewModel}}"
+                            CommandParameter="{Binding SelectedItems, ElementName=TorrentGrid}" Background="#FFFF9A9A">Pause</Button>
+            </WrapPanel>
 
-
-                <DataGrid Grid.Row="0"                                             
+            <DataGrid Grid.Row="1"                                             
                           x:Name="TorrentGrid"                        
                           Background="Transparent"                       
                           RowBackground="Transparent"    
@@ -93,11 +83,10 @@
                         <DataGridTextColumn Header="Upload Speed"/>
                     </DataGrid.Columns>
                 </DataGrid>
-                <GridSplitter Grid.Row="1" 
-                              Height="5" 
-                              VerticalAlignment="Stretch" Margin="0,83.2,-0.4,150.6" Grid.RowSpan="3"/>
 
-                <TabControl Grid.Row="2" Margin="0,0.6,-0.4,-0.4" Grid.RowSpan="2">
+                <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch" ></GridSplitter>
+
+                <TabControl Grid.Row="3" Margin="0,0.6,-0.4,-0.4" Grid.RowSpan="2">
 
                     <TabItem Header="Files">
                         <DataGrid Background="Transparent"
@@ -140,7 +129,7 @@
 
                                     </StackPanel>
                                 </DataTemplate>
-                             
+
                             </ListView.ItemTemplate>
                         </ListView>
                     </TabItem>
@@ -181,6 +170,6 @@
                     </TabItem>
                 </TabControl>
             </Grid>
-        </Grid>
+     
     </DockPanel>
 </Window>

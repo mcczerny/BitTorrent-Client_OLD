@@ -133,10 +133,7 @@ namespace BitTorrent_Client.ViewModels
                 a_torrent.VerifyTorrent();
             });
             VerifyTorrent.Wait();
-            if (!a_torrent.Complete)
-            {
-                Start(a_torrent);
-            }
+           
         }
 
         public void PauseDownload(object parameter)
@@ -213,8 +210,11 @@ namespace BitTorrent_Client.ViewModels
            {
                while (a_torrent.Started)
                {
-                   a_torrent.ProcessBlocks();
-                   Thread.Sleep(1000);
+                   if (!a_torrent.Complete)
+                   {
+                       a_torrent.ProcessBlocks();
+                       Thread.Sleep(1000);
+                   }
                }
            });
 
@@ -223,6 +223,7 @@ namespace BitTorrent_Client.ViewModels
             {
                 while (a_torrent.Started)
                 {
+
                     a_torrent.UpdatePeers();
                     Thread.Sleep(15000);
                 }
@@ -233,18 +234,18 @@ namespace BitTorrent_Client.ViewModels
             {
                 while (a_torrent.Started)
                 {
-                    if (a_torrent.CurrentProgress < .95)
+                    if (!a_torrent.Complete)
                     {
-                        a_torrent.RequestBlocks();
+                        if (a_torrent.CurrentProgress < .95)
+                        {
+                            a_torrent.RequestBlocks();
+                        }
+                        else
+                        {
+                            a_torrent.EndGameRequestBlocks();
+                        }
+                        Thread.Sleep(1000);
                     }
-                    else
-                    {
-                        a_torrent.EndGameRequestBlocks();
-                    }
-                    Thread.Sleep(1000);
-                    //a_torrent.ProcessBlocks();
-                    //Thread.Sleep(1000);
-
                 }
             });
 

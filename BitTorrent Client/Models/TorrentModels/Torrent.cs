@@ -101,14 +101,6 @@ namespace BitTorrent_Client.Models.TorrentModels
         private void HandleBlockReceived(object a_peer, IncomingBlock a_block)
         {
             IncomingBlocks.Enqueue(a_block);
-
-            //foreach(var peer in Seeders)
-            //{
-            //    //if(peer.Value.IP != a_block.Peer.IP)
-            //    //{
-            //    //    peer.Value.SendCancel(a_block.Index, a_block.Begin, a_block.Block.Length);
-            //    //}
-            //}
         }
 
         private void HandleBlockRequested(object a_peer, OutgoingBlock a_block)
@@ -596,7 +588,6 @@ namespace BitTorrent_Client.Models.TorrentModels
                         if (!m_verifiedPieces.OfType<bool>().Contains(false))
                         {
                             Complete = true;
-                            Started = false;
                             m_downloaded = Length;
                             CurrentProgress = 1;
 
@@ -605,7 +596,21 @@ namespace BitTorrent_Client.Models.TorrentModels
 
                             }
                             return;
-                            
+                        }
+
+                        foreach(var peer in Peers)
+                        {
+                            if(!peer.Value.HandshakeReceived || !peer.Value.HandshakeSent)
+                            {
+                                continue;
+                            }
+
+                            if(peer.Value.Complete)
+                            {
+                                continue;
+                            }
+                            peer.Value.SendHave(index);
+
                         }
                     }
                     else
@@ -664,8 +669,8 @@ namespace BitTorrent_Client.Models.TorrentModels
      
             foreach (var peer in Peers)
             {
-                // If a handshake has not been send or received, we can't do anything with that peer.
-                if (!peer.Value.HandshakeReceived && !peer.Value.HandshakeSent)
+                // If a handshake has been send and received.
+                if (!peer.Value.HandshakeReceived || !peer.Value.HandshakeSent)
                 {
                     continue;
                 }
@@ -673,16 +678,14 @@ namespace BitTorrent_Client.Models.TorrentModels
                 // If client has completed downloaded.
                 if (Complete)
                 {
-                    // Send we are not intersted to to the peer because we no 
-                    // long want any files from that peer.
+                    // Send we are not interested to the peer.
                     peer.Value.SendNotInterested();
-                    peer.Value.Disconnect();
-                    //// When the client has fully downloaded and the peer has 
-                    //// fully downnloaded from the peer then disconnect.
-                    //if (peer.Value.Complete)
-                    //{
-                    //    peer.Value.Disconnect();
-                    //}
+
+                    // When the client and peer have completely downloaded.
+                    if (peer.Value.Complete)
+                    {
+                        peer.Value.Disconnect();
+                    }
                 }
                 // When client has not completed downloading.
                 else
@@ -696,7 +699,15 @@ namespace BitTorrent_Client.Models.TorrentModels
                     // Send a keep alive message to avoid timeout.
                     peer.Value.SendKeepAliveMessage();
 
-                    if (this.Started && Seeders.Count < 50)
+                    if (Started && Leechers.Count < 5)
+                    {
+                        if (peer.Value.PeerInterested && peer.Value.AmChoking)
+                        {
+                            peer.Value.SendUnchoke();
+                        }
+                    }
+
+                    if (Started && Seeders.Count < 50)
                     {
                         if (!peer.Value.PeerChoking)
                         {

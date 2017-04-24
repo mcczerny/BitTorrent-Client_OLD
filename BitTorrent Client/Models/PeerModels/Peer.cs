@@ -403,7 +403,7 @@ namespace BitTorrent_Client.Models.PeerModels
 
         public void SendHave(int a_pieceIndex)
         {
-            Console.WriteLine("Sending have message");
+            Console.WriteLine("Sending have message for piece {0}", a_pieceIndex);
             Send(EncodeHaveMessage(a_pieceIndex));
         }
 
@@ -1056,7 +1056,10 @@ namespace BitTorrent_Client.Models.PeerModels
                 }
                 
             }
-
+            if (!HasPiece.OfType<bool>().Contains(false))
+            {
+                Complete = true;
+            }
             CurrentProgress = CurrentProgress / m_torrent.Length;
             BitfieldRecieved?.Invoke(this, new EventArgs());
         }
@@ -1167,11 +1170,11 @@ namespace BitTorrent_Client.Models.PeerModels
 
                 messageLength = GetMessageLength(state.ReceiveBuffer);
             }
-            if (m_torrent.Complete)
-            {
-                Disconnect();
-                return;
-            }
+            //if (m_torrent.Complete)
+            //{
+            //    Disconnect();
+            //    return;
+            //}
             try
             {
              
