@@ -59,6 +59,7 @@ namespace BitTorrent_Client.Models.TorrentModels
 
         private string m_downloadSpeed;
 
+        private string m_status;
         #endregion
 
         #region Constructors
@@ -268,8 +269,11 @@ namespace BitTorrent_Client.Models.TorrentModels
             get { return m_currentProgress; }
             set
             {
-                m_currentProgress = value;
-                OnPropertyChanged("CurrentProgress");
+                if(m_currentProgress != value)
+                {
+                    m_currentProgress = value;
+                    OnPropertyChanged("CurrentProgress");
+                }
             }
         }
 
@@ -340,7 +344,6 @@ namespace BitTorrent_Client.Models.TorrentModels
             {
                 return Utility.GetBytesReadable(Length);
             }
-            
         }
 
         /// <summary>
@@ -372,6 +375,19 @@ namespace BitTorrent_Client.Models.TorrentModels
             set;
         }
 
+        public string Status
+        {
+            get { return m_status; }
+            set
+            {
+                if(m_status != value)
+                {
+                    m_status = value;
+                    OnPropertyChanged("Status");
+
+                }
+            }
+        }
         /// <summary>
         /// Get/Set the name of the torrent.
         /// </summary>
@@ -413,7 +429,7 @@ namespace BitTorrent_Client.Models.TorrentModels
                         var peerByteChange = peer.Value.Downloaded - peer.Value.DownloadedSince;
                         var peerBytesPerSecond = peerByteChange / peerTimeSpan.Seconds;
                         peer.Value.DownloadedSince = peer.Value.Downloaded;
-                        peer.Value.DownloadSpeed = Utility.GetBytesReadable(peerBytesPerSecond);
+                        peer.Value.DownloadSpeed = Utility.GetBitsReadable(peerBytesPerSecond) + "/s";
                         peer.Value.LastUpdate = DateTime.Now;
                     }
                 }
@@ -432,7 +448,7 @@ namespace BitTorrent_Client.Models.TorrentModels
                 var byteChange = m_downloaded - m_downloadedSince;
                 var bytesPerSecond = byteChange / timeSpan.Seconds;
                 m_downloadedSince = m_downloaded;
-                DownloadSpeed = Utility.GetBytesReadable(bytesPerSecond);
+                DownloadSpeed = Utility.GetBytesReadable(bytesPerSecond) + "/s";
                 m_lastUpdate = DateTime.Now;
             }
         }
@@ -521,18 +537,26 @@ namespace BitTorrent_Client.Models.TorrentModels
             // Decodes the raw data from file.
             DecodeTorrent();
 
-            foreach(var trackerUrl in m_announceList)
-            if (trackerUrl.Contains("http://"))
+            foreach (var trackerUrl in m_announceList)
             {
-                Tracker tracker = new HttpTracker(this, trackerUrl);
-                Trackers.Add(tracker);
-                tracker.PeerListUpdated += HandlePeerListUpdated; 
-            }   
-            else
-            {
-                Tracker tracker = new UdpTracker(this, trackerUrl);
-                Trackers.Add(tracker);
-                tracker.PeerListUpdated += HandlePeerListUpdated;
+                if (trackerUrl.Contains("ipv6"))
+                {
+
+                }
+
+                else if (trackerUrl.Contains("http://"))
+                {
+                    Tracker tracker = new HttpTracker(this, trackerUrl);
+                    Trackers.Add(tracker);
+                    tracker.PeerListUpdated += HandlePeerListUpdated;
+                }
+                else if (trackerUrl.Contains("udp://"))
+                {
+                    //Tracker tracker = new UdpTracker(this, trackerUrl);
+                    //Trackers.Add(tracker);
+                    //tracker.PeerListUpdated += HandlePeerListUpdated;
+                }
+                
             }
 
             m_maxPeerRequest = ComputeNumberOfBlocks(0);
@@ -749,11 +773,13 @@ namespace BitTorrent_Client.Models.TorrentModels
 
             for (var i = 0; i < NumberOfPieces; i++)
             {
+                CurrentProgress = (float)i / NumberOfPieces;
                 m_haveBlocks[i] = new bool[ComputeNumberOfBlocks(i)];
                 if (File.Exists(SaveDirectory + "\\" + Name))
                 {
                     if (VerifyPiece(i))
                     {
+                        Status = "Verifying";
                         m_verifiedPieces[i] = true;
                         for (var j = 0; j < ComputeNumberOfBlocks(i); j++)
                         {
@@ -796,8 +822,8 @@ namespace BitTorrent_Client.Models.TorrentModels
                     m_downloaded += ComputePieceLength(i);
                 }
             }
-
             CurrentProgress = (float)m_downloaded / Length;
+            Started = true;
         }
         #endregion
 
@@ -1304,7 +1330,8 @@ namespace BitTorrent_Client.Models.TorrentModels
             byte[] pieceHash = Utility.SubArray(m_pieces, a_pieceIndex * 20, 20);
 
             byte[] piece = TorrentIO.ReadPiece(a_pieceIndex, this);
-            using (SHA1Managed sha1 = new SHA1Managed())
+            SHA1Managed sha1 = new SHA1Managed();
+            using (sha1)
             {
                 if (!pieceHash.SequenceEqual(sha1.ComputeHash(piece)))
                 {

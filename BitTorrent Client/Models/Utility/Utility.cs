@@ -8,6 +8,7 @@ namespace BitTorrent_Client.Models.Utility_Functions
 {
     public static class Utility
     {
+
         public static string GetBytesReadable(long a_length)
         {
             // Get absolute value
@@ -51,6 +52,50 @@ namespace BitTorrent_Client.Models.Utility_Functions
             return readable.ToString("0.## ") + suffix;
         }
 
+
+        public static string GetBitsReadable(long a_length)
+        {
+            // Get absolute value
+            long absolute_i = (a_length < 0 ? -a_length : a_length) * 8;
+            
+            // Determine the suffix and readable value
+            string suffix;
+            double readable;
+
+            // Terabit.
+            if (absolute_i >= 0x10000000000)
+            {
+                suffix = "Tb";
+                readable = (a_length >> 30);
+            }
+            // Gigabit
+            else if (absolute_i >= 0x40000000)
+            {
+                suffix = "Gb";
+                readable = (a_length >> 20);
+            }
+            // Megabit
+            else if (absolute_i >= 0x100000)
+            {
+                suffix = "Mb";
+                readable = (a_length >> 10);
+            }
+            // Kilobit
+            else if (absolute_i >= 0x400)
+            {
+                suffix = "Kb";
+                readable = a_length;
+            }
+            // Bit
+            else
+            {
+                return a_length.ToString("0 B");
+            }
+            // Divide by 1024 to get fractional value
+            readable = (readable / 1024);
+            // Return formatted number with suffix
+            return readable.ToString("0.## ") + suffix;
+        }
         public static byte[] SubArray(byte[] a_data, int a_index, int a_length)
         {
             byte[] result = new byte[a_length];

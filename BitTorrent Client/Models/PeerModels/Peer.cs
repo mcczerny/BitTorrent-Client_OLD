@@ -27,6 +27,7 @@ namespace BitTorrent_Client.Models.PeerModels
         private readonly int m_handshakeSize = 68;
 
         private string m_downloadSpeed;
+
         #endregion
 
         #region Constructors

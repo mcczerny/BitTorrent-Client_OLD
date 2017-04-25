@@ -42,7 +42,10 @@ namespace BitTorrent_Client.ViewModels.Commands
 
         public void Execute(object parameter)
         {
-            ViewModel.PauseDownload(parameter);
+            System.Collections.IList items = (System.Collections.IList)parameter;
+            var torrent = items.Cast<Torrent>().FirstOrDefault();
+
+            ViewModel.PauseDownload(torrent);
         }
     }
 }

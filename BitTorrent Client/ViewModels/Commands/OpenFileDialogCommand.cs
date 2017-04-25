@@ -29,8 +29,7 @@ namespace BitTorrent_Client.ViewModels.Commands
 
         public void Execute(object parameter)
         {
-            this.ViewModel.OpenFileDialog(parameter as Torrent, OpenFileDialogViewModel.OpenFileDialog()
-);
+            this.ViewModel.OpenFileDialog(parameter as Torrent, OpenFileDialogViewModel.OpenFileDialog());
         }
 
     }

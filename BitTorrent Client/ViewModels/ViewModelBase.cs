@@ -6,7 +6,7 @@ using System.Windows.Forms;
 using BitTorrent_Client.Models.TorrentModels;
 using BitTorrent_Client.Models.TrackerModels;
 using BitTorrent_Client.ViewModels.Commands;
-
+using BitTorrent_Client.Models.Utility_Functions;
 namespace BitTorrent_Client.ViewModels
 {
     public class ViewModelBase
@@ -18,6 +18,7 @@ namespace BitTorrent_Client.ViewModels
         private SelectedTorrentPeersViewModel m_selectedTorrentPeersViewModel;
         private SelectedTorrentTrackersViewModel m_selectedTorrentTrackersViewModel;
         private TorrentViewModel m_torrentViewModel;
+        private SynchronizationContext uiContext;
 
         #endregion
 
@@ -115,39 +116,65 @@ namespace BitTorrent_Client.ViewModels
 
         public void OpenFileDialog(Torrent a_torrent, Microsoft.Win32.OpenFileDialog a_openFileDialog)
         {
-            if(a_openFileDialog == null)
+            if (a_openFileDialog == null)
             {
                 return;
             }
 
             a_torrent = new Torrent();
-
             a_torrent.SaveDirectory = ChooseSaveDirectory();
             a_torrent.TorrentName = a_openFileDialog.SafeFileName;
-            a_torrent.OpenTorrent(a_openFileDialog.FileName);
 
+            a_torrent.OpenTorrent(a_openFileDialog.FileName);
             TorrentViewModel.Add(a_torrent);
 
-            Task VerifyTorrent = Task.Run(() =>
+            Task setupTorrent = Task.Factory.StartNew(() =>
             {
                 a_torrent.VerifyTorrent();
             });
-            VerifyTorrent.Wait();
-           
+
+            uiContext = SynchronizationContext.Current;
+
+            Task start = Task.Run(() =>
+            {
+                setupTorrent.Wait();
+                Start(a_torrent);
+            });         
+            //a_torrent = new Torrent();
+
+            //a_torrent.SaveDirectory = ChooseSaveDirectory();
+            //a_torrent.TorrentName = a_openFileDialog.SafeFileName;
+
+            ////Task OpenTorrent = Task.Run(() =>
+            ////{
+            ////    a_torrent.OpenTorrent(a_openFileDialog.FileName);
+            ////    a_torrent.VerifyTorrent();
+            ////});
+            //a_torrent.OpenTorrent(a_openFileDialog.FileName);
+            //TorrentViewModel.Add(a_torrent);
+
+            ////OpenTorrent.Wait();
+            //Task VerifyTorrent = Task.Run(() =>
+            //{
+            //    a_torrent.VerifyTorrent();
+                
+            //});
+
+            //Start(a_torrent); 
+            
+
         }
 
         public void PauseDownload(object parameter)
         {
-            System.Collections.IList items = (System.Collections.IList)parameter;
-            var torrent = items.Cast<Torrent>().FirstOrDefault();
+            var torrent = parameter as Torrent;
 
             torrent.PausePeers();
         }
 
         public void StartDownload(object parameter)
         {
-            System.Collections.IList items = (System.Collections.IList)parameter;
-            var torrent = items.Cast<Torrent>().FirstOrDefault();
+            var torrent = parameter as Torrent;
 
             Start(torrent);
             torrent.ResumeDownloading();
@@ -156,10 +183,7 @@ namespace BitTorrent_Client.ViewModels
 
         public void UpdateSelectedTorrentViews(object parameter)
         {
-            //System.Collections.IList items = (System.Collections.IList)parameter;
-            //m_selectedTorrent = items.Cast<Torrent>().FirstOrDefault();
             m_selectedTorrent = parameter as Torrent;
-
 
             // Updates file tab.
             SelectedTorrentFilesViewModel.Clear();
@@ -193,8 +217,8 @@ namespace BitTorrent_Client.ViewModels
 
         public void Start(Torrent a_torrent)
         {
-            a_torrent.Started = true;
 
+            a_torrent.Status = "Started";
             // Will update trackers.
             Task UpdateTracker = Task.Run(() =>
             {
@@ -248,8 +272,6 @@ namespace BitTorrent_Client.ViewModels
                     }
                 }
             });
-
-            var uiContext = SynchronizationContext.Current;
 
             Task UpdateGUI = Task.Run(() =>
             {
