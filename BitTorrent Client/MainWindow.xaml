@@ -106,16 +106,19 @@
                 <TabItem Header="Info">
                     <ListView Background="Transparent"
                                   DataContext="{Binding Source={StaticResource viewModel}}"
-                                  ItemsSource="{Binding SelectedTorrentFilesViewModel}">
+                                  ItemsSource="{Binding SelectedTorrent}">
                         <ListView.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel>
-                                    <TextBlock Text="Name: "/>
-                                    <TextBlock Text="{Binding Name}"/>
-                                    <TextBlock Text="Total Size: "/>
-                                    <TextBlock Text="{Binding FileSize}"/>
-                                    <TextBlock Text="Created On: "/>
-                                    <TextBlock Text="{Binding CreationDate}"/>
+                                    <TextBlock>
+                                        <Run Text="Name: "/>
+                                        <Run Text="{Binding Name}"/>
+                                    </TextBlock>
+                                   
+                                    <TextBlock>
+                                        <Run Text="Created On: "/>
+                                        <Run Text="{Binding CreationDate}"/>
+                                    </TextBlock>
                                 </StackPanel>
                             </DataTemplate>
                         </ListView.ItemTemplate>

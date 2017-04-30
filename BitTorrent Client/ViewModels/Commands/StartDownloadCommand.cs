@@ -4,17 +4,24 @@ using System.Linq;
 using BitTorrent_Client.Models.TorrentModels;
 namespace BitTorrent_Client.ViewModels.Commands
 {
+    /// <summary>
+    /// This class is used for delegating a start download command between the 
+    /// view and the view model.
+    /// </summary>
     public class StartDownloadCommand : ICommand
     {
-        public ViewModelBase ViewModel { get; set; }
-        public SelectedTorrentInfoViewModel SelectedTorrentViewModel { get; set; }
+        #region Constructors
 
         public StartDownloadCommand(ViewModelBase a_viewModel, 
             SelectedTorrentInfoViewModel a_selectedTorrentViewModel)
         {
-            this.ViewModel = a_viewModel;
-            this.SelectedTorrentViewModel = a_selectedTorrentViewModel;
+            ViewModel = a_viewModel;
+            SelectedTorrentViewModel = a_selectedTorrentViewModel;
         }
+
+        #endregion
+
+        #region Events
 
         public event EventHandler CanExecuteChanged
         {
@@ -48,5 +55,28 @@ namespace BitTorrent_Client.ViewModels.Commands
             ViewModel.StartDownload(torrent);
         }
 
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Get/Private set the base view model of the client.
+        /// </summary>
+        public ViewModelBase ViewModel
+        {
+            get;
+            private set;
+        }
+
+        /// <summary>
+        /// Get/Private set the selected torrent.
+        /// </summary>
+        public SelectedTorrentInfoViewModel SelectedTorrentViewModel
+        {
+            get;
+            private set;
+        }
+
+        #endregion
     }
 }

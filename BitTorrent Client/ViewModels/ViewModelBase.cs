@@ -7,11 +7,16 @@ using BitTorrent_Client.Models.TorrentModels;
 using BitTorrent_Client.Models.TrackerModels;
 using BitTorrent_Client.ViewModels.Commands;
 using BitTorrent_Client.Models.Utility_Functions;
+
 namespace BitTorrent_Client.ViewModels
 {
+    /// <summary>
+    /// This class acts as the main view model for the the BitTorrent Client. 
+    /// </summary>
     public class ViewModelBase
     {
         #region Fields
+
         private Torrent m_selectedTorrent;
         private SelectedTorrentFilesViewModel m_selectedTorrentFilesViewModel;
         private SelectedTorrentInfoViewModel m_selectedTorrentInfoViewModel;
@@ -42,24 +47,36 @@ namespace BitTorrent_Client.ViewModels
 
         #region Properties
 
+        /// <summary>
+        /// Get/Set the PauseDownloadCommand object for view.
+        /// </summary>
         public PauseDownloadCommand PauseDownloadCommand
         {
             get;
             set;
         }
 
+        /// <summary>
+        /// Get/Set the OpenFileDialogCommand object for the view.
+        /// </summary>
         public OpenFileDialogCommand OpenFileDialogCommand
         {
             get;
             set;
         }
 
+        /// <summary>
+        /// Get/Set the SeleectionChangedCommand object for the view.
+        /// </summary>
         public SelectionChangedCommand SelectionChangedCommand
         {
             get;
             set;
         }
 
+        /// <summary>
+        /// Get/Set the StartDownloadCommand object for the view.
+        /// </summary>
         public StartDownloadCommand StartDownloadCommand
         {
             get;
@@ -93,9 +110,7 @@ namespace BitTorrent_Client.ViewModels
         public TorrentViewModel TorrentViewModel
         {
             get { return m_torrentViewModel; }
-            set {
-                m_torrentViewModel = value;
-            }
+            set { m_torrentViewModel = value; }
         }
 
         #endregion
@@ -114,71 +129,90 @@ namespace BitTorrent_Client.ViewModels
 
         }
 
-        public void OpenFileDialog(Torrent a_torrent, Microsoft.Win32.OpenFileDialog a_openFileDialog)
+        public void OpenFileDialog(Torrent a_torrent, 
+            Microsoft.Win32.OpenFileDialog a_openFileDialog)
         {
+            // When user selected no file.
             if (a_openFileDialog == null)
             {
                 return;
             }
 
+            // Setup new torrent object and add to the torrent view model.
             a_torrent = new Torrent();
             a_torrent.SaveDirectory = ChooseSaveDirectory();
             a_torrent.TorrentName = a_openFileDialog.SafeFileName;
-
             a_torrent.OpenTorrent(a_openFileDialog.FileName);
             TorrentViewModel.Add(a_torrent);
 
+            // Start task verifying torrent allowing GUI to respond to user input.
             Task setupTorrent = Task.Factory.StartNew(() =>
             {
                 a_torrent.VerifyTorrent();
             });
 
+            // Get the uiContext allowing the GUI to be later updated through
+            // threads that are not the GUI thread.
             uiContext = SynchronizationContext.Current;
 
+            // Wait for the task setupTorrent to run and then start a new task
+            // that will start the torrent.
             Task start = Task.Run(() =>
             {
                 setupTorrent.Wait();
                 Start(a_torrent);
             });         
-            //a_torrent = new Torrent();
-
-            //a_torrent.SaveDirectory = ChooseSaveDirectory();
-            //a_torrent.TorrentName = a_openFileDialog.SafeFileName;
-
-            ////Task OpenTorrent = Task.Run(() =>
-            ////{
-            ////    a_torrent.OpenTorrent(a_openFileDialog.FileName);
-            ////    a_torrent.VerifyTorrent();
-            ////});
-            //a_torrent.OpenTorrent(a_openFileDialog.FileName);
-            //TorrentViewModel.Add(a_torrent);
-
-            ////OpenTorrent.Wait();
-            //Task VerifyTorrent = Task.Run(() =>
-            //{
-            //    a_torrent.VerifyTorrent();
-                
-            //});
-
-            //Start(a_torrent); 
-            
 
         }
 
-        public void PauseDownload(object parameter)
+        /// <summary>
+        /// Pauses the current selected torrent.
+        /// </summary>
+        /// <param name="a_torrent">The torrent to pause.</param>
+        /// <remarks>
+        /// PauseDownload()
+        /// 
+        /// SYNOPSIS
+        /// 
+        ///     void PauseDownload(object a_torrent);
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function is used when the pause download commmand is executed.
+        ///     It will call the function PausePeers for the torrent stopping 
+        ///     network communications.
+        ///     
+        /// </remarks>
+        public void PauseDownload(object a_torrent)
         {
-            var torrent = parameter as Torrent;
-
+            var torrent = a_torrent as Torrent;
             torrent.PausePeers();
         }
 
-        public void StartDownload(object parameter)
+        /// <summary>
+        /// Starts the current selected torrent.
+        /// </summary>
+        /// <param name="a_torrent">The torrent to pause.</param>
+        /// <remarks>
+        /// StartDownload()
+        /// 
+        /// SYNOPSIS
+        /// 
+        ///     void StartDownload(object a_torrent);
+        /// 
+        /// DESCRIPTION
+        /// 
+        ///     This function is used when the start download command is executed.
+        ///     It will call resume network communications for the selected 
+        ///     torrent.
+        ///     
+        /// </remarks>
+        public void StartDownload(object a_torrent)
         {
-            var torrent = parameter as Torrent;
+            var torrent = a_torrent as Torrent;
 
             Start(torrent);
             torrent.ResumeDownloading();
-
         }
 
         public void UpdateSelectedTorrentViews(object parameter)
@@ -192,11 +226,10 @@ namespace BitTorrent_Client.ViewModels
                 SelectedTorrentFilesViewModel.Add(file);
             }
 
-            // Need to update info tab.
-            //
-            //
+            // Updates info tab.
 
-            // Need to update peers tab.
+
+            // Updates peers tab.
             SelectedTorrentPeersViewModel.Clear();
             foreach (var peer in m_selectedTorrent.Peers)
             {
@@ -219,7 +252,8 @@ namespace BitTorrent_Client.ViewModels
         {
 
             a_torrent.Status = "Started";
-            // Will update trackers.
+
+            // Task will update trackers.
             Task UpdateTracker = Task.Run(() =>
             {
                 while (a_torrent.Started)
@@ -229,16 +263,13 @@ namespace BitTorrent_Client.ViewModels
                 }
             });
 
-           // Will check if there are any blocks to process.
+           // Task will check if there are any blocks to process.
            Task ProcessBlocks = Task.Run(() =>
            {
                while (a_torrent.Started)
                {
-                   if (!a_torrent.Complete)
-                   {
-                       a_torrent.ProcessBlocks();
-                       Thread.Sleep(1000);
-                   }
+                   a_torrent.ProcessBlocks();
+                   Thread.Sleep(1000);
                }
            });
 
@@ -247,7 +278,6 @@ namespace BitTorrent_Client.ViewModels
             {
                 while (a_torrent.Started)
                 {
-
                     a_torrent.UpdatePeers();
                     Thread.Sleep(15000);
                 }
@@ -266,6 +296,7 @@ namespace BitTorrent_Client.ViewModels
                 }
             });
 
+            // Updates the GUI for the current selected torrent.
             Task UpdateGUI = Task.Run(() =>
             {
                 while (a_torrent.Started)
@@ -280,8 +311,6 @@ namespace BitTorrent_Client.ViewModels
             });
         }
 
-
-        
         #endregion
 
         #endregion

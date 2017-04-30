@@ -404,11 +404,11 @@ namespace BitTorrent_Client.Models.PeerModels
         /// </remarks>
         public void SendBitfield()
         {    
-            // When the client has pieces.
-            if(m_torrent.VerifiedPieces.OfType<bool>().Contains(true))
-            {
-                Send(EncodeBitfieldMessage());
-            }
+            //// When the client has pieces.
+            //if(m_torrent.VerifiedPieces.OfType<bool>().Contains(true))
+            //{
+            //    Send(EncodeBitfieldMessage());
+            //}
         }
 
         /// <summary>

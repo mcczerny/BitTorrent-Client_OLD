@@ -94,6 +94,9 @@ namespace BitTorrent_Client.Models.TrackerModels
 
         #region Methods
 
+        /// <summary>
+        /// Abstract class that both HttpTracker and UdpTracker inherit.
+        /// </summary>
         public abstract void Update();
 
         protected void ParsePeers(byte[] a_rawPeers)

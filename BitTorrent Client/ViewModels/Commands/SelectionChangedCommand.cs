@@ -5,15 +5,22 @@ using System.Linq;
 using BitTorrent_Client.Models.TorrentModels;
 namespace BitTorrent_Client.ViewModels.Commands
 {
+    /// <summary>
+    /// This class is used for delegating a torrent selection changed command 
+    /// between the view and the view model.
+    /// </summary>
     public class SelectionChangedCommand : ICommand
     {
-        public ViewModelBase ViewModel { get; set; }
-        public SelectedTorrentInfoViewModel SelectedTorrentViewModel { get; set; }
+        #region Constructors
 
-        public SelectionChangedCommand(ViewModelBase viewModel)
+        public SelectionChangedCommand(ViewModelBase a_viewModel)
         {
-            this.ViewModel = viewModel;
+            ViewModel = a_viewModel;
         }
+
+        #endregion
+
+        #region Events
 
         public event EventHandler CanExecuteChanged
         {
@@ -31,7 +38,32 @@ namespace BitTorrent_Client.ViewModels.Commands
             System.Collections.IList items = (System.Collections.IList)parameter;
             var torrent = items.Cast<Torrent>().FirstOrDefault();
 
-            this.ViewModel.UpdateSelectedTorrentViews(torrent);
+            ViewModel.UpdateSelectedTorrentViews(torrent);
         }
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Get/Private set the base view model of the client.
+        /// </summary>
+        public ViewModelBase ViewModel
+        {
+            get;
+            private set;
+        }
+
+        /// <summary>
+        /// Get/Private set the selected torrent.
+        /// </summary>
+        public SelectedTorrentInfoViewModel SelectedTorrentViewModel
+        {
+            get;
+            private set;
+        }
+
+        #endregion
+
     }
 }

@@ -30,9 +30,6 @@ namespace BitTorrent_Client.Models.TorrentModels
 
         // Stores the last update time for updating download speed.
         private DateTime m_lastUpdate;
-       
-        // SHA1Managed object so one does not need to be created on piece verify.
-        private SHA1Managed m_sha1 = new SHA1Managed();
 
         // Stores if piece has been verified.
         private bool[] m_verifiedPieces;
@@ -909,14 +906,14 @@ namespace BitTorrent_Client.Models.TorrentModels
                     // Send a keep alive message to avoid timeout.
                     peer.Value.SendKeepAliveMessage();
 
-                    if (Started && Leechers.Count < 5)
-                    {
-                        if (peer.Value.PeerInterested && peer.Value.AmChoking)
-                        {
-                            peer.Value.SendUnchoke();
-                            Leechers.TryAdd(peer.Key, peer.Value);
-                        }
-                    }
+                    //if (Started && Leechers.Count < 5)
+                    //{
+                    //    if (peer.Value.PeerInterested && peer.Value.AmChoking)
+                    //    {
+                    //        peer.Value.SendUnchoke();
+                    //        Leechers.TryAdd(peer.Key, peer.Value);
+                    //    }
+                    //}
 
                     if (Started && Seeders.Count < 20)
                     {
@@ -975,8 +972,12 @@ namespace BitTorrent_Client.Models.TorrentModels
         /// </remarks>
         public void VerifyTorrent()
         {
+            Started = true;
+
             // Initialize arrays.
             m_haveBlocks = new bool[NumberOfPieces][];
+            m_requestedBlocks = new bool[NumberOfPieces][];
+
             m_verifiedPieces = new bool[NumberOfPieces];
 
             // Fill in the other dimension of m_haveBlocks array.
@@ -984,6 +985,7 @@ namespace BitTorrent_Client.Models.TorrentModels
             {
                 CurrentProgress = (float)i / NumberOfPieces;
                 m_haveBlocks[i] = new bool[ComputeNumberOfBlocks(i)];
+                m_requestedBlocks[i] = new bool[ComputeNumberOfBlocks(i)];
                 // If the file exist we need to verify each piece in the file.
                 if (File.Exists(SaveDirectory + "\\" + Name))
                 {
@@ -995,27 +997,28 @@ namespace BitTorrent_Client.Models.TorrentModels
                         for (var j = 0; j < ComputeNumberOfBlocks(i); j++)
                         {
                             m_haveBlocks[i][j] = true;
-                        }
-                    }
-                }
-            }
-
-            // Initialize and set values of m_requestedBlocks.
-            m_requestedBlocks = new bool[NumberOfPieces][];
-            for (var i = 0; i < NumberOfPieces; i++)
-            {
-                m_requestedBlocks[i] = new bool[ComputeNumberOfBlocks(i)];
-                if (File.Exists(SaveDirectory + "\\" + Name))
-                {
-                    if (VerifyPiece(i))
-                    {
-                        for (var j = 0; j < ComputeNumberOfBlocks(i); j++)
-                        {
                             m_requestedBlocks[i][j] = true;
                         }
                     }
                 }
             }
+
+            //// Initialize and set values of m_requestedBlocks.
+            //m_requestedBlocks = new bool[NumberOfPieces][];
+            //for (var i = 0; i < NumberOfPieces; i++)
+            //{
+            //    m_requestedBlocks[i] = new bool[ComputeNumberOfBlocks(i)];
+            //    if (File.Exists(SaveDirectory + "\\" + Name))
+            //    {
+            //        if (VerifyPiece(i))
+            //        {
+            //            for (var j = 0; j < ComputeNumberOfBlocks(i); j++)
+            //            {
+            //                m_requestedBlocks[i][j] = true;
+            //            }
+            //        }
+            //    }
+            //}
 
             // If the torrent is completely downloaded.
             if (!m_verifiedPieces.OfType<bool>().Contains(false))
@@ -1037,7 +1040,6 @@ namespace BitTorrent_Client.Models.TorrentModels
                 CurrentProgress = (float)m_downloaded / Length;
             }
 
-            Started = true;
         }
         #endregion
 
@@ -1576,6 +1578,21 @@ namespace BitTorrent_Client.Models.TorrentModels
         /// </summary>
         /// <param name="a_pieceIndex">The index of the piece to verify.</param>
         /// <returns>Returns true if the hashes match and false if they don't.</returns>
+        /// <remarks>
+        /// VerifyPiece()
+        /// 
+        /// SYNOPSIS
+        /// 
+        ///     bool VerifyPiece(int a_pieceIndex);
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function will verify a piece in the torrent by the given
+        ///     parameter a_pieceIndex. It will first get the piece hash given 
+        ///     in the torrent meta-data and then the sha1 hash is computed of 
+        ///     the torrent and compared.
+        /// 
+        /// </remarks>
         private bool VerifyPiece(int a_pieceIndex)
         {
             // The hash taken from the torrent meta-data.
@@ -1583,9 +1600,9 @@ namespace BitTorrent_Client.Models.TorrentModels
 
             // The piece is read in and the hash is computed and compared.
             var piece = TorrentIO.ReadPiece(a_pieceIndex, this);
-            using (m_sha1)
+            using (SHA1Managed sha1 = new SHA1Managed())
             {
-                if (!pieceHash.SequenceEqual(m_sha1.ComputeHash(piece)))
+                if (!pieceHash.SequenceEqual(sha1.ComputeHash(piece)))
                 {
                     return false;
                 }

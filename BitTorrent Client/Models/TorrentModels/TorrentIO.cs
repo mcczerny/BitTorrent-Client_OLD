@@ -10,7 +10,6 @@ namespace BitTorrent_Client.Models.TorrentModels
 {
     static class TorrentIO
     {
-
         #region Methods
 
         /// <summary>
@@ -30,6 +29,7 @@ namespace BitTorrent_Client.Models.TorrentModels
         ///     This function open the torrent at given path. It will return
         ///     File.ReadAllBytes of the path, which is a byte array that contains
         ///     all of the files byte data.
+        ///     
         /// </remarks>
         public static byte[] OpenTorrent(string a_path)
         {
@@ -57,6 +57,7 @@ namespace BitTorrent_Client.Models.TorrentModels
         ///     given torrent and file. A FileStream is used to open the file
         ///     and it's position is made equal to the piece index * piece length.
         ///     The piece is read into the piece byte array and then is returned.
+        ///     
         /// </remarks>
         public static byte[] ReadPiece(int a_pieceIndex, Torrent a_torrent)
         {
@@ -115,8 +116,6 @@ namespace BitTorrent_Client.Models.TorrentModels
             //    }
 
             //else if(a_torrent.Files[i].StartOffset > startIndex)
-
-
             //}
             if (a_torrent.Files.Count == 1)
             {
@@ -135,10 +134,8 @@ namespace BitTorrent_Client.Models.TorrentModels
                 {
                     fileStream.Position = a_block.Index * a_torrent.PieceLength + a_block.Begin;
                     fileStream.Write(a_block.Block, 0, a_block.Block.Length);
-
                 }
                 a_torrent.HaveBlocks[a_block.Index][a_block.Begin/a_torrent.BlockLength] = true;
-
             }
             //else
             //{
@@ -156,9 +153,7 @@ namespace BitTorrent_Client.Models.TorrentModels
             //        }
             //    }
             //}
-
         }
-
         #endregion
     }
 }
