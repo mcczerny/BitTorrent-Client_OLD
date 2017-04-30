@@ -2,6 +2,10 @@
 
 namespace BitTorrent_Client.Models.PeerModels
 {
+    /// <summary>
+    /// The class is used as a state object when receiving data from peer through
+    /// asychronous TCP receive calls.
+    /// </summary>
     class AsyncStateObject
     {
         #region Constructors

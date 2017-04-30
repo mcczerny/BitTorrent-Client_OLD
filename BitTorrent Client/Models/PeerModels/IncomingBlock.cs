@@ -1,5 +1,8 @@
 ﻿namespace BitTorrent_Client.Models.PeerModels
 {
+    /// <summary>
+    /// This class is used as a data object for receiving blocks from a peer.
+    /// </summary>
     public class IncomingBlock
     {
         #region Constructors

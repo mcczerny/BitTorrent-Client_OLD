@@ -10,7 +10,6 @@ namespace BitTorrent_Client.Models.TorrentModels
 {
     static class TorrentIO
     {
-        private static readonly Stream m_fileStream;
 
         #region Methods
 

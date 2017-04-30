@@ -1,5 +1,8 @@
 ﻿namespace BitTorrent_Client.Models.PeerModels
 {
+    /// <summary>
+    /// This class is used as a data object for sending outgoing messages to a peer.
+    /// </summary>
     public class OutgoingBlock
     {
         #region Constructors
@@ -35,7 +38,7 @@
         }
 
         /// <summary>
-        /// Get/Private set the piece index of the block
+        /// Get/Private set the piece index of the block.
         /// </summary>
         public int Index
         {

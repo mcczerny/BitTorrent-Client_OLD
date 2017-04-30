@@ -22,18 +22,24 @@ namespace BitTorrent_Client.Models.TorrentModels
         // Stores the announce url's for all trackers parsed from .torrent file.
         List<string> m_announceList = new List<string>();
 
-
+        // Stores the piece downloader order.
         private Dictionary<int, int> m_downloadOrder = new Dictionary<int, int>();
-
+        
+        // Stores the number of occurances of pieces.
         private Dictionary<int, int> m_pieceOccurances = new Dictionary<int, int>();
 
+        // Stores the last update time for updating download speed.
         private DateTime m_lastUpdate;
        
+        // SHA1Managed object so one does not need to be created on piece verify.
+        private SHA1Managed m_sha1 = new SHA1Managed();
+
         // Stores if piece has been verified.
         private bool[] m_verifiedPieces;
 
         // Stores the blocks that have been downloaded.
         private bool[][] m_haveBlocks;
+
         // Stores the blocks that have been requested.
         private bool[][] m_requestedBlocks;
 
@@ -42,24 +48,31 @@ namespace BitTorrent_Client.Models.TorrentModels
        
         // Stores the sha1 hashes for each piece.
         private byte[] m_pieces;
+
         // Stores the raw byte data of torrent.
         private byte[] m_rawData;
 
         // Stores the max number blocks to request from each peer at a time.
         private int m_maxPeerRequest;
 
+        // Stores the current progress of the cliet.
         private float m_currentProgress;
 
         // Stores if the torrent is a private tracker.        
         private long m_privateTracker;
 
+        // Stores how many bytes have been downloaded since the last update.
         private long m_downloadedSince;
 
+        // Stores the total amount downloaded since last update.
         private long m_downloaded;
 
+        // Stores a readable copy of download download speed.
         private string m_downloadSpeed;
 
+        // Stores the current status of the torrent.
         private string m_status;
+
         #endregion
 
         #region Constructors
@@ -79,6 +92,7 @@ namespace BitTorrent_Client.Models.TorrentModels
 
         #region Events
 
+        // Handles property changed events.
         public event PropertyChangedEventHandler PropertyChanged;
 
         private void OnPropertyChanged(string a_propertyName)
@@ -86,59 +100,162 @@ namespace BitTorrent_Client.Models.TorrentModels
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(a_propertyName));
         }
 
-        private void HandleBitfieldRecieved(object a_peer, EventArgs a_args)
+        /// <summary>
+        /// Handles a bitfield received event.
+        /// </summary>
+        /// <param name="a_peer">The peer that sent the bitfield message.</param>
+        /// <param name="a_args">EventArgs.Empty passed.</param>
+        /// <remarks>
+        /// HandleBitfieldReceived()
+        /// 
+        /// SYNOPSIS
+        /// 
+        ///     void HandleBitfieldReceived(object a_peer, EventArgs a_args);
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function will handle when a bitfield message is received 
+        ///     from the peer. It will add any pieces the peer has to the 
+        ///     dictionary of the number of piece occurances of all the peers. 
+        ///     This will help the client to determine the rarest pieces to 
+        ///     download first.
+        ///     
+        /// </remarks>
+        private void HandleBitfieldReceived(object a_peer, EventArgs a_args)
         {
+            // Count the pieces the peer has.            
             var peer = a_peer as Peer;
             for(var i = 0; i < NumberOfPieces; i++)
             {
-                m_pieceOccurances[i]++;
+                if (peer.HasPiece[i])
+                {
+                    m_pieceOccurances[i]++;
+                }
             }
         }
+
+        // NOT DONE
         private void HandleBlockCanceled(object a_peer, OutgoingBlock a_block)
         {
 
         }
 
+        /// <summary>
+        /// Handles a block received event.
+        /// </summary>
+        /// <param name="a_peer">The peer who sent the block.</param>
+        /// <param name="a_block">Contains the block received.</param>
+        /// <remarks>
+        /// HandleBlockReceived()
+        /// 
+        /// SYNOPSIS
+        /// 
+        ///     void HandleBlockReceived(object a_peer, IncomingBlock a_block);
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function will handle a block received event by adding the
+        ///     received block to a queue to await further processing.
+        ///     
+        /// </remarks>
         private void HandleBlockReceived(object a_peer, IncomingBlock a_block)
         {
+            // Add received block to queue.
             IncomingBlocks.Enqueue(a_block);
         }
 
+        // NOT DONE
         private void HandleBlockRequested(object a_peer, OutgoingBlock a_block)
         {
 
         }
 
+        /// <summary>
+        /// Handles a have message event.
+        /// </summary>
+        /// <param name="a_peer">The peer who sent the have message.</param>
+        /// <param name="a_pieceIndex">The piece index the peer has.</param>
+        /// <remarks>
+        /// HandleHaveReceived()
+        /// 
+        /// SYNOPSIS
+        /// 
+        ///     HandleHaveReceived(object a_peer, int a_pieceIndex);
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function handles a have message event. It will add the new
+        ///     piece the peer has to the piece occurances dictionary.
+        ///     
+        /// </remarks>
         private void HandleHaveReceived(object a_peer, int a_pieceIndex)
         {
+            // Adds the new piece to the piece occurances dictionary.
             m_pieceOccurances[a_pieceIndex]++;
         }
+
+        /// <summary>
+        /// Handles a peer disconnect event. 
+        /// </summary>
+        /// <param name="a_peer">The peer that disconnected</param>
+        /// <param name="a_args">EventArgs.Empty</param>
+        /// <remarks>
+        /// HandlePeerDisconnected()
+        /// 
+        /// SYNOPSIS
+        /// 
+        ///     HanlePeerDisconnected(object a_peer, EventArgs a_args);
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function will handle when a peer disconnects from the client.
+        ///     It will remove the peer event subscribers from the publisher and
+        ///     try to remove the peer from the peers, seeders, and leechers 
+        ///     dictionaries.
+        /// </remarks>
         private void HandlePeerDisconnected(object a_peer, EventArgs a_args)
         {
-            var peer = (Peer)a_peer;
+            var peer = a_peer as Peer;
+            // Remove subscriber from publisher.
             peer.BlockCanceled -= HandleBlockCanceled;
             peer.BlockReceived -= HandleBlockReceived;
             peer.BlockRequested -= HandleBlockRequested;
             peer.Disconnected -= HandlePeerDisconnected;
 
-            Peer peerDisconnect;
-
-            if (Peers.TryRemove(peer.IP, out peerDisconnect))
-            {
-                Console.WriteLine("Peer {0}:{1} was removed from the peers list", peerDisconnect.IP, peerDisconnect.Port);
-            }
-            if(Seeders.TryRemove(peer.IP, out peerDisconnect))
-            {
-                //Console.WriteLine("Peer {0}:{1} was removed from the seeders list", peerDisconnect.IP, peerDisconnect.Port);
-
-            }
+            // Using extension method to TryRemove the disconnected peer.
+            Peers.TryRemove(peer.IP);
+            Seeders.TryRemove(peer.IP);
+            Leechers.TryRemove(peer.IP);
         }
 
-        private void HandlePeerListUpdated(object a_sender, List<string> a_addresses)
+        /// <summary>
+        /// Handles when a tracker has new peers.
+        /// </summary>
+        /// <param name="a_sender">The tracker that triggered the event.</param>
+        /// <param name="a_addresses">Peer addresses</param>
+        /// <remarks>
+        /// HandlePeerListUpdated()
+        /// 
+        /// SYNOPSIS
+        /// 
+        ///     void HandlePeerListUpdated(object a_tracker, List<string> a_addresses);
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function will handle when a tracker has updated and received 
+        ///     new peers. It will call the function SetPeerEventHandlers on each
+        ///     peer address that does not already exist in the Peers Dictionary.
+        ///     
+        /// </remarks>
+        private void HandlePeerListUpdated(object a_tracker, List<string> a_addresses)
         {
+            // Call SetPeerEventHandlers on new peer objects that do not already exist.
             foreach (string address in a_addresses)
             {
-                SetPeerEventHandlers(new Peer(this, address));
+                if(!Peers.ContainsKey(address))
+                {
+                    SetPeerEventHandlers(new Peer(this, address));
+                }
             }
         }
 
@@ -163,6 +280,7 @@ namespace BitTorrent_Client.Models.TorrentModels
             get;
             private set;
         }
+        
         /// <summary>
         /// Get/Private set all of peers that the client is connected to.
         /// </summary>
@@ -180,6 +298,7 @@ namespace BitTorrent_Client.Models.TorrentModels
             get;
             private set;
         }
+        
         /// <summary>
         /// Get/Private set all of the incomming blocks that are awaiting processing.
         /// </summary>
@@ -199,8 +318,7 @@ namespace BitTorrent_Client.Models.TorrentModels
         }
 
         /// <summary>
-        /// Get/Private set of an observable collection that holds all files
-        /// in the torrent.
+        /// Get/Private set of an observable collection that holds all files in the torrent.
         /// </summary>
         public ObservableCollection<FileWrapper> Files
         {
@@ -208,12 +326,23 @@ namespace BitTorrent_Client.Models.TorrentModels
             private set;
         }
 
+        /// <summary>
+        /// Get/Private Set the blocks that the client has.
+        /// </summary>
         public bool[][] HaveBlocks
         {
             get { return m_haveBlocks; }
-            set { m_haveBlocks = value; }
+            private set { m_haveBlocks = value; }
         }
 
+        /// <summary>
+        /// Gets the verified pieces the client has.
+        /// </summary>
+        public bool[] VerifiedPieces
+        {
+            get { return m_verifiedPieces; }
+        }
+        
         /// <summary>
         /// Stores if all the files have been downloaded.
         /// </summary>
@@ -233,7 +362,6 @@ namespace BitTorrent_Client.Models.TorrentModels
             set;
         }
 
-
         /// <summary>
         /// Get/Private set of the sha1 hash of the torrent's info dictionary.
         /// </summary>
@@ -242,7 +370,6 @@ namespace BitTorrent_Client.Models.TorrentModels
             get;
             private set;
         }
-
         
         /// <summary>
         /// Gets the default block length.
@@ -252,22 +379,22 @@ namespace BitTorrent_Client.Models.TorrentModels
             get { return 16384; }
         }
 
-
         /// <summary>
         /// Gets the number of pieces that makeup the file(s).
         /// </summary>
         public int NumberOfPieces
         {
-            get
-            {
-                return (int)Math.Ceiling(Length / (double)PieceLength);
-            }
+            get;
+            private set;
         }
 
+        /// <summary>
+        /// Get/Private set the current progress of the torrent.
+        /// </summary>
         public float CurrentProgress
         {
             get { return m_currentProgress; }
-            set
+            private set
             {
                 if(m_currentProgress != value)
                 {
@@ -277,6 +404,14 @@ namespace BitTorrent_Client.Models.TorrentModels
             }
         }
 
+        /// <summary>
+        /// Gets how many bytes downloaded.
+        /// </summary>
+        public long Downloaded
+        {
+            get { return m_downloaded; }
+        }
+        
         /// <summary>
         /// Get/Private set the Length of the torrent.
         /// </summary>
@@ -313,10 +448,13 @@ namespace BitTorrent_Client.Models.TorrentModels
             private set;
         }
 
+        /// <summary>
+        /// Get/Private set the download speed of the torrent.
+        /// </summary>
         public string DownloadSpeed
         {
            get { return m_downloadSpeed; }
-            set
+            private set
             {
                 if (m_downloadSpeed != value)
                 {
@@ -375,6 +513,9 @@ namespace BitTorrent_Client.Models.TorrentModels
             set;
         }
 
+        /// <summary>
+        /// Get/Set the status of the torrent.
+        /// </summary>
         public string Status
         {
             get { return m_status; }
@@ -388,6 +529,7 @@ namespace BitTorrent_Client.Models.TorrentModels
                 }
             }
         }
+
         /// <summary>
         /// Get/Set the name of the torrent.
         /// </summary>
@@ -412,10 +554,29 @@ namespace BitTorrent_Client.Models.TorrentModels
 
         #region Public Methods
 
+        /// <summary>
+        /// Computes the download speed.
+        /// </summary>
+        /// <remarks>
+        /// ComputeDownloadSpeed()
+        /// 
+        /// SYNOPSIS
+        /// 
+        ///     ComputeDownloadSpeed();
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function will compute the current download speed of the
+        ///     torrent. It will also compute the downloading speed for each 
+        ///     individual peer the client is downloading from.
+        ///     
+        /// </remarks>
         public void ComputeDownloadSpeed()
         {
+            // Compute the download speed of each peer.
             foreach(var peer in Peers)
             {
+                // This would be the first time this function is run.
                 if(peer.Value.LastUpdate == null)
                 {
                     peer.Value.LastUpdate = DateTime.Now;
@@ -423,7 +584,9 @@ namespace BitTorrent_Client.Models.TorrentModels
                 }
                 else
                 {
+                    // Computes download speed for each peer.
                     var peerTimeSpan = DateTime.Now - peer.Value.LastUpdate;
+                    // Only compute if more than 2 seconds have passed.
                     if(peerTimeSpan.Seconds > 2)
                     {
                         var peerByteChange = peer.Value.Downloaded - peer.Value.DownloadedSince;
@@ -435,6 +598,7 @@ namespace BitTorrent_Client.Models.TorrentModels
                 }
 
             }
+            // Compute the download speed of the torrent.
             if (m_lastUpdate == null)
             {
                 m_lastUpdate = DateTime.Now;
@@ -442,6 +606,7 @@ namespace BitTorrent_Client.Models.TorrentModels
                 return;
             }
 
+            // Only compute a new download speed after 2 seconds.
             var timeSpan = DateTime.Now - m_lastUpdate;
             if(timeSpan.Seconds > 2)
             {
@@ -453,45 +618,27 @@ namespace BitTorrent_Client.Models.TorrentModels
             }
         }
 
-        public void EndGameRequestBlocks()
-        {
-            Console.WriteLine("Endgame request");
-            foreach (var peer in Seeders)
-            {
-                ComputeRarestPieces();
-                foreach (var piece in m_downloadOrder)
-                {
-                    // If we already have a verified piece or if the peer does
-                    // not have the piece.
-                    if (m_verifiedPieces[piece.Key] || !peer.Value.HasPiece[piece.Key])
-                    {
-                        continue;
-                    }
-
-                    for (var block = 0; block < ComputeNumberOfBlocks(piece.Key); block++)
-                    {
-                        if (m_haveBlocks[piece.Key][block])
-                        {
-                            continue;
-                        }
-                       
-                        if (peer.Value.NumberOfBlocksRequested > m_maxPeerRequest)
-                        {
-                            continue;
-                        }
-
-                        var blockLength = ComputeBlockLength(piece.Key, block);
-                        peer.Value.SendRequest(piece.Key, block * blockLength, blockLength);
-                        m_requestedBlocks[piece.Key][block] = true;
-
-                        peer.Value.NumberOfBlocksRequested++;
-                    }
-                }
-            }
-        }
-    
+        /// <summary>
+        /// Resumes downloading after a pause.
+        /// </summary>
+        /// <remarks>
+        /// ResumeDownloading()
+        /// 
+        /// SYNOPSIS
+        /// 
+        ///     void ResumeDownloading()
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function will resume downloading after a torrent has been
+        ///     paused. It will retrieve the already stored peers from each tracker
+        ///     and call the function SetPeerEventHandlers on them. Starting the
+        ///     peer connection process again.
+        ///     
+        /// </remarks>
         public void ResumeDownloading()
         {
+            // For each tracker, get the peers.
             foreach(var tracker in Trackers)
             {
                 foreach(var address in tracker.Peers)
@@ -501,10 +648,27 @@ namespace BitTorrent_Client.Models.TorrentModels
             }
         }
 
+        /// <summary>
+        /// Pauses downloading.
+        /// </summary>
+        /// <remarks>
+        /// PausePeers()
+        /// 
+        /// SYNOPSIS
+        /// 
+        ///     void PausePeers();
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function will pause a torrent from downloading. It will set
+        ///     the bool Started to false and disconnect each peer.
+        ///     
+        /// </remarks>
         public void PausePeers()
         {
             Started = false;
 
+            // Disconnect each peer.
             foreach(var peer in Peers)
             {
                 peer.Value.Disconnect();
@@ -527,7 +691,9 @@ namespace BitTorrent_Client.Models.TorrentModels
         /// 
         ///     This function will open the file located at the path a_path and
         ///     save the bytes in m_rawData to be decoded with the DecodeTorrent
-        ///     function.
+        ///     function. It will also create tracker object from the trackers
+        ///     found in the announce list and set the max peer request limit.
+        ///     
         /// </remarks>
         public void OpenTorrent(string a_path)
         {
@@ -537,6 +703,7 @@ namespace BitTorrent_Client.Models.TorrentModels
             // Decodes the raw data from file.
             DecodeTorrent();
 
+            // For each tracker url create a new tracker object.
             foreach (var trackerUrl in m_announceList)
             {
                 if (trackerUrl.Contains("ipv6"))
@@ -559,6 +726,7 @@ namespace BitTorrent_Client.Models.TorrentModels
                 
             }
 
+            // Set the max peer reqeust to the number of blocks in a piece.
             m_maxPeerRequest = ComputeNumberOfBlocks(0);
         }
 
@@ -578,46 +746,47 @@ namespace BitTorrent_Client.Models.TorrentModels
         ///     queue. It will first mark the block as have and if we have the
         ///     whole piece and the piece has not been verified already, then 
         ///     we try to verify the piece.
+        ///     
         /// </remarks>
         public void ProcessBlocks()
         {
             IncomingBlock block;
             while (IncomingBlocks.TryDequeue(out block))
             {
-
+                // Compute the block number of the received block.
                 var blockNumber = block.Begin / BlockLength;
                 var index = block.Index;
-                //Console.WriteLine("Received piece {0} block {1}", index, blockNumber);
+
                 // Write the block to file.
                 TorrentIO.WriteBlock(block, this);
 
+                // Adds the amount downloaded from peer to the peer downloaded total.
                 block.Peer.Downloaded += block.Block.Length;
 
                 // Decrement the number of blocks requested for the peer.
                 block.Peer.NumberOfBlocksRequested--;
 
-
-
-                // When none of thet blocks in the piece are missing and piece is not verified.
+                // When none of the blocks in the piece are missing and piece is not verified.
                 if (!m_haveBlocks[index].OfType<bool>().Contains(false) && !m_verifiedPieces[index])
                 {
+                    // If the piece is valid.
                     if (VerifyPiece(index))
                     {
-                        Console.WriteLine("Piece {0} verified", index);
-
+                        // Add piece to total downloaded and compute progress.
                         m_downloaded += ComputePieceLength(index);
-
                         CurrentProgress = (float)m_downloaded / Length;
                         m_verifiedPieces[index] = true;
+
+                        // When all the pieces have been verified.
                         if (!m_verifiedPieces.OfType<bool>().Contains(false))
                         {
                             Complete = true;
                             m_downloaded = Length;
                             CurrentProgress = 1;
 
+                            // Remove any extra incoming blocks still in queue.
                             while (IncomingBlocks.TryDequeue(out block))
                             {
-
                             }
                             return;
                         }
@@ -633,13 +802,19 @@ namespace BitTorrent_Client.Models.TorrentModels
                             {
                                 continue;
                             }
-                            peer.Value.SendHave(index);
+
+                            if(Leechers.Count < 5)
+                            {
+                                peer.Value.SendHave(index);
+                            }
+                        
 
                         }
                     }
+                    // Piece hash does not match.
                     else
                     {
-                        // Clear array and mark as unrequested when piece hash does not match.
+                        // Clear array and mark as unrequested.
                         Array.Clear(m_haveBlocks[index], 0, m_haveBlocks[index].Length);
                         m_requestedBlocks[index] = m_haveBlocks[index];
                     }
@@ -647,15 +822,19 @@ namespace BitTorrent_Client.Models.TorrentModels
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
         public void RequestBlocks()
         {
+            ComputeRarestPieces();
+
+            // Request blocks from seeders
             foreach (var peer in Seeders)
             {
-                ComputeRarestPieces();
                 foreach(var piece in m_downloadOrder)
                 { 
-                    // If we already have a verified piece or if the peer does
-                    // not have the piece.
+                    // If we already have piece or peer does not have piece.
                     if (m_verifiedPieces[piece.Key] || !peer.Value.HasPiece[piece.Key])
                     {
                         continue;
@@ -663,37 +842,44 @@ namespace BitTorrent_Client.Models.TorrentModels
 
                     for (var block = 0; block < ComputeNumberOfBlocks(piece.Key); block++)
                     {
+                        // Have the block already.
                         if (m_haveBlocks[piece.Key][block])
                         {
                             continue;
                         }
-                        // If we already requested the block from some peer.
-                        if (m_requestedBlocks[piece.Key][block])
+
+                        // When less than 95 perecent complete we check if the
+                        // block is already requested.
+                        if (CurrentProgress < .95 && m_requestedBlocks[piece.Key][block])
                         {
                             continue;
                         }
-
+                       
+                        // When we have reached max request.
                         if (peer.Value.NumberOfBlocksRequested > m_maxPeerRequest)
                         {
                             continue;
                         }
 
+                        // Send request for block.
                         var blockLength = ComputeBlockLength(piece.Key, block);
                         peer.Value.SendRequest(piece.Key, block * blockLength, blockLength);
                         m_requestedBlocks[piece.Key][block] = true;
-
                         peer.Value.NumberOfBlocksRequested++;
                     }
                 }
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
         public void UpdatePeers()
         {
-     
+               
             foreach (var peer in Peers)
             {
-                // If a handshake has been send and received.
+                // If a handshake has not been sent and received.
                 if (!peer.Value.HandshakeReceived || !peer.Value.HandshakeSent)
                 {
                     continue;
@@ -728,10 +914,11 @@ namespace BitTorrent_Client.Models.TorrentModels
                         if (peer.Value.PeerInterested && peer.Value.AmChoking)
                         {
                             peer.Value.SendUnchoke();
+                            Leechers.TryAdd(peer.Key, peer.Value);
                         }
                     }
 
-                    if (Started && Seeders.Count < 50)
+                    if (Started && Seeders.Count < 20)
                     {
                         if (!peer.Value.PeerChoking)
                         {
@@ -756,41 +943,64 @@ namespace BitTorrent_Client.Models.TorrentModels
         /// 
         ///     This function will go through every tracker in the Trackers collection
         ///     and call the update function.
+        ///     
         /// </remarks>
         public void UpdateTrackers()
         {
             foreach(Tracker tracker in Trackers)
             {
-                Console.WriteLine("Updating {0}", tracker.TrackerUrl);
                 tracker.Update();
             }
         }
 
+        /// <summary>
+        /// Verifies torrent.
+        /// </summary>
+        /// <remarks>
+        /// VerifyTorrent()
+        /// 
+        /// SYNOPSIS
+        /// 
+        ///     void VerifyTorrent();
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function will verify a torrent once openned. It will create
+        ///     the bool arrays for storing the blocks and pieces we have. It
+        ///     will also compute the starting current progress. When the file
+        ///     we are trying to download already exist, it verifies the pieces
+        ///     the pieces are valid in the file and marks the ones pieces that 
+        ///     still need to be downloaded.
+        ///     
+        /// </remarks>
         public void VerifyTorrent()
         {
+            // Initialize arrays.
             m_haveBlocks = new bool[NumberOfPieces][];
             m_verifiedPieces = new bool[NumberOfPieces];
 
+            // Fill in the other dimension of m_haveBlocks array.
             for (var i = 0; i < NumberOfPieces; i++)
             {
                 CurrentProgress = (float)i / NumberOfPieces;
                 m_haveBlocks[i] = new bool[ComputeNumberOfBlocks(i)];
+                // If the file exist we need to verify each piece in the file.
                 if (File.Exists(SaveDirectory + "\\" + Name))
                 {
+                    Status = "Verifying";
+
                     if (VerifyPiece(i))
                     {
-                        Status = "Verifying";
                         m_verifiedPieces[i] = true;
                         for (var j = 0; j < ComputeNumberOfBlocks(i); j++)
                         {
                             m_haveBlocks[i][j] = true;
                         }
-
                     }
                 }
-
             }
 
+            // Initialize and set values of m_requestedBlocks.
             m_requestedBlocks = new bool[NumberOfPieces][];
             for (var i = 0; i < NumberOfPieces; i++)
             {
@@ -803,26 +1013,30 @@ namespace BitTorrent_Client.Models.TorrentModels
                         {
                             m_requestedBlocks[i][j] = true;
                         }
-
                     }
                 }
-
             }
 
+            // If the torrent is completely downloaded.
             if (!m_verifiedPieces.OfType<bool>().Contains(false))
             {
                 Complete = true;
                 m_downloaded = Length;
+                CurrentProgress = 1;
+            }
+            // Compute the percentage downloaded so far.
+            else
+            {
+                for (var i = 0; i < NumberOfPieces; i++)
+                {
+                    if (m_verifiedPieces[i])
+                    {
+                        m_downloaded += ComputePieceLength(i);
+                    }
+                }
+                CurrentProgress = (float)m_downloaded / Length;
             }
 
-            for(var i = 0; i < NumberOfPieces; i++)
-            {
-                if (m_verifiedPieces[i])
-                {
-                    m_downloaded += ComputePieceLength(i);
-                }
-            }
-            CurrentProgress = (float)m_downloaded / Length;
             Started = true;
         }
         #endregion
@@ -848,6 +1062,7 @@ namespace BitTorrent_Client.Models.TorrentModels
         ///     and divides it by the length of a block. It calls the Math.Ceiling
         ///     function on the result and returns the result of that converted
         ///     to an integer.
+        ///     
         /// </remarks>
         private int ComputeNumberOfBlocks(int a_pieceIndex)
         {
@@ -874,6 +1089,7 @@ namespace BitTorrent_Client.Models.TorrentModels
         ///     then we need to check if there is a remainder when we divide the
         ///     piece length by the block length. If there is a remainder, then
         ///     that is returned and if not then the BlockLength is returned.
+        ///     
         /// </remarks>
         private int ComputeBlockLength(int a_pieceIndex, int a_block)
         {
@@ -908,6 +1124,7 @@ namespace BitTorrent_Client.Models.TorrentModels
         ///     hashes. If it has multiple files, then it starts with a base length
         ///     and adds the length of each file including the path and the piece
         ///     hashes.
+        ///     
         /// </remarks>
         private int ComputeInfoDictionaryLength()
         {
@@ -944,9 +1161,10 @@ namespace BitTorrent_Client.Models.TorrentModels
 
                     // split each folder
                     var folderCount = file.Path.Split('\\');
+                    
+                    // for each folder
                     for (var i = 1; i < folderCount.Length; i++)
                     {
-                        // for each folder
                         totalLength += folderCount[i].Length;
                         totalLength += folderCount[i].Length.ToString().Length + 1;
                     }
@@ -973,8 +1191,8 @@ namespace BitTorrent_Client.Models.TorrentModels
         ///     This function will compute the sha1 hash of the info dictionary.
         ///     It first must find the starting index of the info dictionary and
         ///     the length of it. Then, the info dictionary is copied to a byte
-        ///     array and the info hash is computed. Once the info hash is generated
-        ///     a url encoded hash is created.
+        ///     array and the info hash is computed.
+        ///     
         /// </remarks>
         private void ComputeInfoHash()
         {
@@ -1014,6 +1232,7 @@ namespace BitTorrent_Client.Models.TorrentModels
         ///     a remainder when the Length of the torrent is divided by the 
         ///     PieceLength. If there is a remainder then that is returned and if 
         ///     not PieceLength is returned.
+        ///     
         /// </remarks>
         public int ComputePieceLength(int a_pieceIndex)
         {
@@ -1029,6 +1248,23 @@ namespace BitTorrent_Client.Models.TorrentModels
             return (int)PieceLength;
         }
 
+        /// <summary>
+        /// Finds the rarest pieces.
+        /// </summary>
+        /// <remarks>
+        /// ComputeRarestPieces()
+        /// 
+        /// SYNOPSIS
+        ///     
+        ///     ComputeRarestPieces();
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function will compute the rarest pieces in the torrent. The
+        ///     download order dictionary is cleared and a new one is created that
+        ///     is ordered by the piece occurances.
+        ///     
+        /// </remarks>
         private void ComputeRarestPieces()
         {
             m_downloadOrder.Clear();
@@ -1037,6 +1273,7 @@ namespace BitTorrent_Client.Models.TorrentModels
                 m_downloadOrder.Add(item.Key, item.Value);
             }
         }
+
         /// <summary>
         /// Decodes the torrent.
         /// </summary>
@@ -1052,7 +1289,9 @@ namespace BitTorrent_Client.Models.TorrentModels
         ///     This function will decode the torrent. It will first decode the
         ///     bencoded raw data. It will then call the SetMetaData function
         ///     setting all class fields and properties. The info hash is then
-        ///     computed.
+        ///     computed and the dictionary m_pieceOccurances default values are
+        ///     set.
+        ///     
         /// </remarks>
         private void DecodeTorrent()
         {
@@ -1060,8 +1299,11 @@ namespace BitTorrent_Client.Models.TorrentModels
 
             SetMetaData(decodedData.ElementAt(0).Value);
 
+            NumberOfPieces = (int)Math.Ceiling(Length / (double)PieceLength);
+
             ComputeInfoHash();
-               
+
+            // Adds pieces to dictionary and sets default value.   
             for(var i = 0; i < NumberOfPieces; i++)
             {
                 m_pieceOccurances.Add(i, 0);
@@ -1087,6 +1329,7 @@ namespace BitTorrent_Client.Models.TorrentModels
         ///     The function will find the start index of the info dictionary.
         ///     It will loop through m_rawData looking for the byte sequence equal
         ///     to "4:infod".
+        ///     
         /// </remarks>
         private int FindInfoDictionaryStartIndex()
         {
@@ -1134,6 +1377,7 @@ namespace BitTorrent_Client.Models.TorrentModels
         ///     This function will set the fields and properties of the info 
         ///     dictionary. This includes the piece length, piece hashes, private,
         ///     and file data.
+        ///     
         /// </remarks>
         private void SetInfoDictionaryData(Dictionary<string, BDecodedObject> a_dictionary)
         {
@@ -1233,6 +1477,7 @@ namespace BitTorrent_Client.Models.TorrentModels
         ///     metadata. This includes the announce url's, the creation date, 
         ///     comment, created by and encoding. It will then call the function
         ///     SetInfoDictionaryData.
+        ///     
         /// </remarks>
         private void SetMetaData(Dictionary<string, BDecodedObject> a_dictionary)
         {
@@ -1305,11 +1550,12 @@ namespace BitTorrent_Client.Models.TorrentModels
         ///     This function will set the even handlers for peer. It will also
         ///     call the connect function in the peer. If it successfully connects
         ///     it will add the peer to the Peers concurrent dictionary.
+        ///     
         /// </remarks>
         private void SetPeerEventHandlers(Peer a_peer)
         {
             // Set event handlers.
-            a_peer.BitfieldRecieved += HandleBitfieldRecieved;
+            a_peer.BitfieldRecieved += HandleBitfieldReceived;
             a_peer.Disconnected += HandlePeerDisconnected;
             a_peer.HaveRecieved += HandleHaveReceived;
             a_peer.BlockRequested += HandleBlockRequested;
@@ -1325,15 +1571,21 @@ namespace BitTorrent_Client.Models.TorrentModels
             }
         }
 
+        /// <summary>
+        /// Verifies a piece in the torrent.
+        /// </summary>
+        /// <param name="a_pieceIndex">The index of the piece to verify.</param>
+        /// <returns>Returns true if the hashes match and false if they don't.</returns>
         private bool VerifyPiece(int a_pieceIndex)
         {
-            byte[] pieceHash = Utility.SubArray(m_pieces, a_pieceIndex * 20, 20);
+            // The hash taken from the torrent meta-data.
+            var pieceHash = Utility.SubArray(m_pieces, a_pieceIndex * 20, 20);
 
-            byte[] piece = TorrentIO.ReadPiece(a_pieceIndex, this);
-            SHA1Managed sha1 = new SHA1Managed();
-            using (sha1)
+            // The piece is read in and the hash is computed and compared.
+            var piece = TorrentIO.ReadPiece(a_pieceIndex, this);
+            using (m_sha1)
             {
-                if (!pieceHash.SequenceEqual(sha1.ComputeHash(piece)))
+                if (!pieceHash.SequenceEqual(m_sha1.ComputeHash(piece)))
                 {
                     return false;
                 }

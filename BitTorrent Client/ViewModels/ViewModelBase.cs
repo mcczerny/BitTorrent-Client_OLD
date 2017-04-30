@@ -260,16 +260,9 @@ namespace BitTorrent_Client.ViewModels
                 {
                     if (!a_torrent.Complete)
                     {
-                        if (a_torrent.CurrentProgress < .95)
-                        {
-                            a_torrent.RequestBlocks();
-                        }
-                        else
-                        {
-                            a_torrent.EndGameRequestBlocks();
-                        }
-                        Thread.Sleep(1000);
+                        a_torrent.RequestBlocks();
                     }
+                    Thread.Sleep(1000);
                 }
             });
 

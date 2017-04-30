@@ -39,7 +39,6 @@
                 <Button Command="{Binding Path=PauseDownloadCommand, Source={StaticResource viewModel}}"
                             CommandParameter="{Binding SelectedItems, ElementName=TorrentGrid}" Background="#FFFF9A9A">Pause</Button>
             </WrapPanel>
-
             <DataGrid Grid.Row="1"                                             
                           x:Name="TorrentGrid"                        
                           Background="Transparent"                       
@@ -50,14 +49,12 @@
                           Grid.RowSpan="4"
                           DataContext="{Binding Source={StaticResource viewModel}}"                       
                           ItemsSource="{Binding TorrentViewModel}" Margin="0,0,-0.4,-0.4">
-
                 <i:Interaction.Triggers>
                     <i:EventTrigger EventName="SelectionChanged">
                         <i:InvokeCommandAction Command="{Binding SelectionChangedCommand}"                               
                                                    CommandParameter="{Binding SelectedItems, ElementName=TorrentGrid}"/>
                     </i:EventTrigger>
                 </i:Interaction.Triggers>
-
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Name" Binding="{Binding Name}"/>
                     <DataGridTextColumn Header="Size" Binding="{Binding FileSize}"/>
@@ -69,14 +66,9 @@
                                     <ProgressBar Value="{Binding CurrentProgress, Mode=OneWay}"             
                                                  Minimum="0"
                                                  Maximum="1"/>
-
                                     <TextBlock Text="{Binding CurrentProgress, Mode=OneWay, StringFormat={}{0:P}}"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"/>
-
-
-
-
                                 </Grid>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -85,11 +77,8 @@
                     <DataGridTextColumn Header="Upload Speed"/>
                 </DataGrid.Columns>
             </DataGrid>
-
-            <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch" ></GridSplitter>
-
+            <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch"/>
             <TabControl Grid.Row="3" Margin="0,0.6,-0.4,-0.4" Grid.RowSpan="2">
-
                 <TabItem Header="Files">
                     <DataGrid Background="Transparent"
                                   RowBackground="Transparent"
@@ -98,7 +87,6 @@
                                   AutoGenerateColumns="false"    
                                   IsReadOnly="true"
                                   GridLinesVisibility="None">
-
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Name"        
                                                     Binding="{Binding Path}">
@@ -111,7 +99,7 @@
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
                             <DataGridTextColumn Header="Size" 
-                                                    Binding="{Binding FileSize}"/>
+                                                Binding="{Binding FileSize}"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </TabItem>
@@ -128,10 +116,8 @@
                                     <TextBlock Text="{Binding FileSize}"/>
                                     <TextBlock Text="Created On: "/>
                                     <TextBlock Text="{Binding CreationDate}"/>
-
                                 </StackPanel>
                             </DataTemplate>
-
                         </ListView.ItemTemplate>
                     </ListView>
                 </TabItem>
@@ -143,17 +129,14 @@
                                   GridLinesVisibility="None"      
                                   DataContext="{Binding Source={StaticResource viewModel}}"
                                   ItemsSource="{Binding SelectedTorrentPeersViewModel}">
-
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="IP" Binding="{Binding IP}"/>
                             <DataGridTextColumn Header="Port" Binding="{Binding Port}"/>
                             <DataGridTextColumn Header="Percentage Complete" Binding="{Binding CurrentProgress, Mode=OneWay, StringFormat={}{0:P}}"/>
                             <DataGridTextColumn Header="Download Speed" Binding="{Binding DownloadSpeed}"/>
                             <DataGridTextColumn Header="Upload Speed"/>
-
                         </DataGrid.Columns>
                     </DataGrid>
-
                 </TabItem>
                 <TabItem Header="Trackers">
                     <DataGrid DataContext="{Binding Source={StaticResource viewModel}}"
@@ -170,11 +153,6 @@
                     </DataGrid>
                 </TabItem>
             </TabControl>
-        
-
-            
         </Grid>
-
-
     </DockPanel>
 </Window>

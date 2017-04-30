@@ -1,6 +1,4 @@
-﻿
-
-namespace BitTorrent_Client.ViewModels
+﻿namespace BitTorrent_Client.ViewModels
 {
     public class SelectedTorrentInfoViewModel
     {

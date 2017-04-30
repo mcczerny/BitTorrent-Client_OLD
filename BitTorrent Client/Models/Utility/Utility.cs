@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Collections.Concurrent; 
 
 namespace BitTorrent_Client.Models.Utility_Functions
 {
@@ -52,12 +49,11 @@ namespace BitTorrent_Client.Models.Utility_Functions
             return readable.ToString("0.## ") + suffix;
         }
 
-
         public static string GetBitsReadable(long a_length)
         {
             // Get absolute value
             long absolute_i = (a_length < 0 ? -a_length : a_length) * 8;
-            
+
             // Determine the suffix and readable value
             string suffix;
             double readable;
@@ -96,6 +92,7 @@ namespace BitTorrent_Client.Models.Utility_Functions
             // Return formatted number with suffix
             return readable.ToString("0.## ") + suffix;
         }
+
         public static byte[] SubArray(byte[] a_data, int a_index, int a_length)
         {
             byte[] result = new byte[a_length];
@@ -103,5 +100,17 @@ namespace BitTorrent_Client.Models.Utility_Functions
             Buffer.BlockCopy(a_data, a_index, result, 0, a_length);
             return result;
         }
+
     }
+
+    public static class DictionaryExtension
+    {
+        public static bool TryRemove<TKey, TValue>
+            (this ConcurrentDictionary<TKey, TValue> a_dictionary, TKey a_key)
+        {
+            TValue temp;
+            return a_dictionary.TryRemove(a_key, out temp);
+        }
+    }
+
 }

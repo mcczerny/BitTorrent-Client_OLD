@@ -2,6 +2,10 @@
 
 namespace BitTorrent_Client.Models.TorrentModels
 {
+    /// <summary>
+    /// This class acts as a file wrapper for storing information about the files
+    /// in the torrent info-dictionary.
+    /// </summary>
     public class FileWrapper
     {
         #region Properties
