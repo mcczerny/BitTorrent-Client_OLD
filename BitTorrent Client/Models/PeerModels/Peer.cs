@@ -73,7 +73,7 @@ namespace BitTorrent_Client.Models.PeerModels
         public event EventHandler<int> HaveRecieved;
         public event EventHandler<IncomingBlock> BlockReceived;
         public event EventHandler<OutgoingBlock> BlockRequested;
-        public event EventHandler<OutgoingBlock> BlockCanceled;
+        public event EventHandler<OutgoingBlock> BlockCancelled;
 
         #endregion
 
@@ -707,9 +707,9 @@ namespace BitTorrent_Client.Models.PeerModels
         /// Decodes a cancel message.
         /// </summary>
         /// <param name="a_message">The message to be decoded.</param>
-        /// <param name="a_index">Returns the piece index of the canceled block.</param>
-        /// <param name="a_begin">Returns the beginning ofset of canceled block.</param>
-        /// <param name="a_length">Returns the length of canceled block.</param>
+        /// <param name="a_index">Returns the piece index of the cancelled block.</param>
+        /// <param name="a_begin">Returns the beginning ofset of cancelled block.</param>
+        /// <param name="a_length">Returns the length of cancelled block.</param>
         /// <returns>Returns true if it is a valid cancel message and false if not.</returns>
         /// <remarks>
         /// DecodeCancelMessage()
@@ -1645,7 +1645,7 @@ namespace BitTorrent_Client.Models.PeerModels
         /// <summary>
         /// Handles a cancel message.
         /// </summary>
-        /// <param name="a_index">The piece index of canceled block.</param>
+        /// <param name="a_index">The piece index of cancelled block.</param>
         /// <param name="a_begin">The beginning offset of the cancelled block.</param>
         /// <param name="a_length">The length of the cancelled block.</param>
         /// <remarks>
@@ -1665,7 +1665,7 @@ namespace BitTorrent_Client.Models.PeerModels
         private void HandleCancelMessage(int a_index, int a_begin, int a_length)
         {
             // Invokes event.
-            BlockCanceled?.Invoke(this, new OutgoingBlock(this, a_index, a_begin, a_length));
+            BlockCancelled?.Invoke(this, new OutgoingBlock(this, a_index, a_begin, a_length));
         }
 
         /// <summary>

@@ -28,6 +28,11 @@
             private set;
         }
 
+        public bool Cancelled
+        {
+            get;
+            set;
+        }
         /// <summary>
         /// The beginning index of the block.
         /// </summary>

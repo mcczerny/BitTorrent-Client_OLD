@@ -135,9 +135,13 @@ namespace BitTorrent_Client.Models.TorrentModels
         }
 
         // NOT DONE
-        private void HandleBlockCanceled(object a_peer, OutgoingBlock a_block)
+        private void HandleBlockCancelled(object a_peer, OutgoingBlock a_block)
         {
-
+           
+            foreach(var block in IncomingBlocks)
+            {
+                
+            }
         }
 
         /// <summary>
@@ -164,10 +168,33 @@ namespace BitTorrent_Client.Models.TorrentModels
             IncomingBlocks.Enqueue(a_block);
         }
 
-        // NOT DONE
+        /// <summary>
+        /// Handles a block requested event.
+        /// </summary>
+        /// <param name="a_peer">The peer requesting a block.</param>
+        /// <param name="a_block">Contains information about the requested block.</param>
+        /// <remarks>
+        /// HandleBlockRequested()
+        /// 
+        /// SYNOPSIS
+        ///         
+        ///     HandleBlockRequested(object a_peer, OutgoingBLock a_block);
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function will handle a block requested event. If the peer
+        ///     is in the group of selected leechers, then the piece is sent to
+        ///     the peer by calling first reading in the block and calling the
+        ///     function SendPiece.
+        /// </remarks>
         private void HandleBlockRequested(object a_peer, OutgoingBlock a_block)
         {
+            var peer = a_peer as Peer;
 
+            if (Leechers.ContainsKey(peer.IP))
+            {
+                OutgoingBlocks.Enqueue(a_block);
+            }
         }
 
         /// <summary>
@@ -217,7 +244,7 @@ namespace BitTorrent_Client.Models.TorrentModels
         {
             var peer = a_peer as Peer;
             // Remove subscriber from publisher.
-            peer.BlockCanceled -= HandleBlockCanceled;
+            peer.BlockCancelled -= HandleBlockCancelled;
             peer.BlockReceived -= HandleBlockReceived;
             peer.BlockRequested -= HandleBlockRequested;
             peer.Disconnected -= HandlePeerDisconnected;
@@ -303,6 +330,15 @@ namespace BitTorrent_Client.Models.TorrentModels
         /// Get/Private set all of the incomming blocks that are awaiting processing.
         /// </summary>
         public ConcurrentQueue<IncomingBlock> IncomingBlocks
+        {
+            get;
+            private set;
+        }
+
+        /// <summary>
+        /// Get/Private set all of the outgoing blocks that are awaiting processing.
+        /// </summary>
+        public ConcurrentQueue<OutgoingBlock> OutgoingBlocks
         {
             get;
             private set;
@@ -824,6 +860,31 @@ namespace BitTorrent_Client.Models.TorrentModels
         }
 
         /// <summary>
+        /// Processes any outgoing blocks that are in the queue.
+        /// </summary>
+        public void ProcessOutgoing()
+        {
+            OutgoingBlock block;
+            // Process any blocks in queue.
+            while (OutgoingBlocks.TryDequeue(out block))
+            {
+                // If block that was requested was cancelled.
+                if (block.Cancelled)
+                {
+                    continue;
+                }
+
+                // If we have the piece then send it.
+                if (VerifiedPieces[block.Index])
+                {
+                    var data = TorrentIO.ReadBlock(block, this);
+                    block.Peer.SendPiece(block.Index, block.Begin, data);
+                }
+                
+            }
+        }
+
+        /// <summary>
         /// 
         /// </summary>
         public void RequestBlocks()
@@ -1015,23 +1076,6 @@ namespace BitTorrent_Client.Models.TorrentModels
                     }
                 }
             }
-
-            //// Initialize and set values of m_requestedBlocks.
-            //m_requestedBlocks = new bool[NumberOfPieces][];
-            //for (var i = 0; i < NumberOfPieces; i++)
-            //{
-            //    m_requestedBlocks[i] = new bool[ComputeNumberOfBlocks(i)];
-            //    if (File.Exists(SaveDirectory + "\\" + Name))
-            //    {
-            //        if (VerifyPiece(i))
-            //        {
-            //            for (var j = 0; j < ComputeNumberOfBlocks(i); j++)
-            //            {
-            //                m_requestedBlocks[i][j] = true;
-            //            }
-            //        }
-            //    }
-            //}
 
             // If the torrent is completely downloaded.
             if (!m_verifiedPieces.OfType<bool>().Contains(false))

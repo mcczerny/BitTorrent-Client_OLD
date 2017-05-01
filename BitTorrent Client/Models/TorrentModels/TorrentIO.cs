@@ -37,6 +37,40 @@ namespace BitTorrent_Client.Models.TorrentModels
         }
 
         /// <summary>
+        /// Reads in a block from a file.
+        /// </summary>
+        /// <param name="a_block">Contains parameters to the blocks location.</param>
+        /// <param name="a_torrent">The torrent file that contains save directory,
+        ///         the file name, and the piece length needed to read the block.
+        /// </param>
+        /// <returns>Returns a byte array containing the block requested.</returns>
+        /// <remarks>
+        /// ReadBlock()
+        /// 
+        /// SYNOPSIS
+        /// 
+        ///     byte[] ReadBlock(OutgoingBlock a_block, Torrent a_torrent);
+        ///     
+        /// DESCRIPTION
+        ///        
+        ///     This function will read in the block at the specified piece index,
+        ///     beginning offset. It will return a byte array with the block to
+        ///     be used when sending a piece to a peer.
+        /// </remarks>
+        public static byte[] ReadBlock(OutgoingBlock a_block, Torrent a_torrent)
+        {
+            string file = a_torrent.SaveDirectory + "\\" + a_torrent.Name;
+            var block = new byte[a_torrent.ComputePieceLength(a_block.Index)];
+
+            using (var filestream = new FileStream(file, FileMode.Open, FileAccess.Read))
+            {
+                filestream.Position = a_block.Index * a_torrent.PieceLength + a_block.Begin;
+                filestream.Read(block, 0, (int)a_block.Length);
+            }
+
+            return block;
+        }
+        /// <summary>
         /// Reads in a piece from file.
         /// </summary>
         /// <param name="a_pieceIndex"> The index of the piece.</param>
@@ -62,24 +96,17 @@ namespace BitTorrent_Client.Models.TorrentModels
         public static byte[] ReadPiece(int a_pieceIndex, Torrent a_torrent)
         {
             string file = a_torrent.SaveDirectory + "\\" + a_torrent.Name;
-            byte[] piece = new byte[a_torrent.PieceLength];
-            //int bytesRead;
+            var piece = new byte[a_torrent.PieceLength];
 
-            using (Stream fileStream = new FileStream(file, FileMode.Open, FileAccess.Read))
+            using (var fileStream = new FileStream(file, FileMode.Open, FileAccess.Read))
             {
                 fileStream.Position = a_pieceIndex * a_torrent.PieceLength;
-                //bytesRead = 0;
                 fileStream.Read(piece, 0, (int)a_torrent.PieceLength);
-                //do
-                //{
-                //    bytesRead += fileStream.Read(piece, bytesRead,
-                //        (int)a_torrent.PieceLength - bytesRead);
-                //} while (bytesRead != a_torrent.PieceLength && 
-                //fileStream.Position < fileStream.Length);
             }
 
             return piece;   
         }
+
 
         /// <summary>
         /// Writes a block of data to the file.
