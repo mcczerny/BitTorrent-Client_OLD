@@ -110,6 +110,7 @@
                         <ListView.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel>
+                                    <TextBox Text="{Binding Name}"/>
                                     <TextBlock>
                                         <Run Text="Name: "/>
                                         <Run Text="{Binding Name}"/>

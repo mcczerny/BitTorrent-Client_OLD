@@ -77,6 +77,8 @@ namespace BitTorrent_Client.Models.Bencoding
                     case '9':
                         decodedObjectList.Add(DecodeString(a_data));
                         break;
+                    default:
+                        throw new FormatException("Invalid delimiter detected");
                 }
                 m_index++;
             }

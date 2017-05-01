@@ -1,4 +1,4 @@
-﻿using System.Linq;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -123,10 +123,14 @@ namespace BitTorrent_Client.ViewModels
         {
             FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog();
 
-            folderBrowserDialog.ShowDialog();
+         
+            var result = folderBrowserDialog.ShowDialog();
+            if(result == DialogResult.OK)
+            {
+                return folderBrowserDialog.SelectedPath;
+            }
 
-            return folderBrowserDialog.SelectedPath;
-
+            return null;
         }
 
         public void OpenFileDialog(Torrent a_torrent, 
@@ -141,8 +145,29 @@ namespace BitTorrent_Client.ViewModels
             // Setup new torrent object and add to the torrent view model.
             a_torrent = new Torrent();
             a_torrent.SaveDirectory = ChooseSaveDirectory();
+
+            // Checks if user selected a save location.
+            if(a_torrent.SaveDirectory == null)
+            {
+                var saveLocationError = MessageBox.Show("No save location chosen", "Error");
+                return;
+            }
+
             a_torrent.TorrentName = a_openFileDialog.SafeFileName;
-            a_torrent.OpenTorrent(a_openFileDialog.FileName);
+
+            // Tries to open .torrent file. 
+            try
+            {
+                a_torrent.OpenTorrent(a_openFileDialog.FileName);
+
+            }
+            // If torrent is invalidly bencoded. 
+            catch (FormatException e)
+            {
+                var errorMessage = MessageBox.Show(e.Message.ToString(), "Error");
+                return;
+            }
+
             TorrentViewModel.Add(a_torrent);
 
             // Start task verifying torrent allowing GUI to respond to user input.
@@ -211,8 +236,12 @@ namespace BitTorrent_Client.ViewModels
         {
             var torrent = a_torrent as Torrent;
 
-            Start(torrent);
-            torrent.ResumeDownloading();
+            Task start = Task.Run(() =>
+            {
+                torrent.Started = true;
+                Start(torrent);
+                torrent.ResumeDownloading();
+            });
         }
 
         public void UpdateSelectedTorrentViews(object parameter)

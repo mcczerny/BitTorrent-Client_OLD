@@ -101,7 +101,7 @@ namespace BitTorrent_Client.Models.TrackerModels
             requestUrl.Append("&downloaded=0");
             requestUrl.Append("&left=");
             requestUrl.Append(m_torrent.Length);
-            requestUrl.Append("&numwant=50");
+            requestUrl.Append("&numwant=100");
             requestUrl.Append("&event=started");
             requestUrl.Append("&compact=1");
 

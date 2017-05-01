@@ -31,6 +31,9 @@ namespace BitTorrent_Client.Models.TorrentModels
         // Stores the last update time for updating download speed.
         private DateTime m_lastUpdate;
 
+        // Stores the length of time before the client disconnects from peer.
+        private readonly TimeSpan m_timeout = TimeSpan.FromSeconds(90);
+
         // Stores if piece has been verified.
         private bool[] m_verifiedPieces;
 
@@ -610,7 +613,7 @@ namespace BitTorrent_Client.Models.TorrentModels
                 var byteChange = m_downloaded - m_downloadedSince;
                 var bytesPerSecond = byteChange / timeSpan.Seconds;
                 m_downloadedSince = m_downloaded;
-                DownloadSpeed = Utility.GetBytesReadable(bytesPerSecond) + "/s";
+                DownloadSpeed = Utility.GetBitsReadable(bytesPerSecond) + "/s";
                 m_lastUpdate = DateTime.Now;
             }
         }
@@ -643,6 +646,8 @@ namespace BitTorrent_Client.Models.TorrentModels
                     SetPeerEventHandlers(new Peer(this, address));
                 }
             }
+
+            Status = "Started";
         }
 
         /// <summary>
@@ -671,6 +676,7 @@ namespace BitTorrent_Client.Models.TorrentModels
                 peer.Value.Disconnect();
             }
 
+            Status = "Paused";
         }
 
         /// <summary>
@@ -800,12 +806,10 @@ namespace BitTorrent_Client.Models.TorrentModels
                                 continue;
                             }
 
-                            if(Leechers.Count < 5)
+                            if(!peer.Value.HasPiece[index])
                             {
                                 peer.Value.SendHave(index);
                             }
-                        
-
                         }
                     }
                     // Piece hash does not match.
@@ -851,7 +855,7 @@ namespace BitTorrent_Client.Models.TorrentModels
                         {
                             continue;
                         }
-                       
+
                         // When we have reached max request.
                         if (peer.Value.NumberOfBlocksRequested > m_maxPeerRequest)
                         {
@@ -876,6 +880,11 @@ namespace BitTorrent_Client.Models.TorrentModels
                
             foreach (var peer in Peers)
             {
+                if(DateTime.Now > peer.Value.LastActive.Add(m_timeout))
+                {
+                    Console.WriteLine("Peer disconnected because it timed out.");
+                    peer.Value.Disconnect();
+                }
                 // If a handshake has not been sent and received.
                 if (!peer.Value.HandshakeReceived || !peer.Value.HandshakeSent)
                 {
@@ -886,7 +895,10 @@ namespace BitTorrent_Client.Models.TorrentModels
                 if (Complete)
                 {
                     // Send we are not interested to the peer.
-                    peer.Value.SendNotInterested();
+                    if(peer.Value.AmInterested)
+                    {
+                        peer.Value.SendNotInterested();
+                    }
 
                     // When the client and peer have completely downloaded.
                     if (peer.Value.Complete)
@@ -906,16 +918,17 @@ namespace BitTorrent_Client.Models.TorrentModels
                     // Send a keep alive message to avoid timeout.
                     peer.Value.SendKeepAliveMessage();
 
-                    //if (Started && Leechers.Count < 5)
-                    //{
-                    //    if (peer.Value.PeerInterested && peer.Value.AmChoking)
-                    //    {
-                    //        peer.Value.SendUnchoke();
-                    //        Leechers.TryAdd(peer.Key, peer.Value);
-                    //    }
-                    //}
+                    if (Started && Leechers.Count < 1)
+                    {
+                        if (peer.Value.PeerInterested && peer.Value.AmChoking)
+                        {
+                            peer.Value.SendUnchoke();
+                            Leechers.TryAdd(peer.Key, peer.Value);
+                            Console.WriteLine("Added leacher");
+                        }
+                    }
 
-                    if (Started && Seeders.Count < 20)
+                    if (Started && Seeders.Count < 50)
                     {
                         if (!peer.Value.PeerChoking)
                         {

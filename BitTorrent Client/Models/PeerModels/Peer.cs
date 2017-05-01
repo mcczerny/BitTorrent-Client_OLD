@@ -38,6 +38,7 @@ namespace BitTorrent_Client.Models.PeerModels
         {
             m_torrent = a_torrent;
 
+            LastActive = DateTime.Now;
             HasPiece = new bool[m_torrent.NumberOfPieces];
 
             var separatedAddress = a_address.Split(':');
@@ -101,6 +102,15 @@ namespace BitTorrent_Client.Models.PeerModels
         #endregion
 
         #region Properties
+
+        /// <summary>
+        /// The last time the peer has sent a message.
+        /// </summary>
+        public DateTime LastActive
+        {
+            get;
+            set;
+        }
 
         /// <summary>
         /// Get/Set the last time peer statistics were checked.
@@ -331,6 +341,7 @@ namespace BitTorrent_Client.Models.PeerModels
                 // Catches exception and calls Disconnect()
                 catch (Exception e)
                 {
+                    Console.WriteLine(IP);
                     Console.WriteLine(e.ToString());
                     Disconnect();
                     return;
@@ -403,12 +414,13 @@ namespace BitTorrent_Client.Models.PeerModels
         ///     
         /// </remarks>
         public void SendBitfield()
-        {    
-            //// When the client has pieces.
-            //if(m_torrent.VerifiedPieces.OfType<bool>().Contains(true))
-            //{
-            //    Send(EncodeBitfieldMessage());
-            //}
+        {
+            // When the client has pieces.
+            if (m_torrent.VerifiedPieces.OfType<bool>().Contains(true))
+            {
+                Console.WriteLine("Sending bitfield");
+                Send(EncodeBitfieldMessage());
+            }
         }
 
         /// <summary>
@@ -434,6 +446,7 @@ namespace BitTorrent_Client.Models.PeerModels
         /// </remarks>
         public void SendCancel(int a_index, int a_begin, int a_length)
         {
+            Console.WriteLine("Sending cancel");
             Send(EncodeCancelMessage(a_index, a_begin, a_length));
         }
 
@@ -455,6 +468,7 @@ namespace BitTorrent_Client.Models.PeerModels
         /// </remarks>
         public void SendChoke()
         {
+            Console.WriteLine("Sending choke");
             Send(EncodeChokeMessage());
             AmChoking = true;
         }
@@ -478,6 +492,7 @@ namespace BitTorrent_Client.Models.PeerModels
         /// </remarks>
         private void SendHandshake()
         {
+            Console.WriteLine("Sending handshake");
             Send(EncodeHandshakeMessage());
             HandshakeSent = true;
         }
@@ -503,6 +518,7 @@ namespace BitTorrent_Client.Models.PeerModels
         /// </remarks>
         public void SendHave(int a_pieceIndex)
         {
+            Console.WriteLine("Sending have");
             Send(EncodeHaveMessage(a_pieceIndex));
         }
 
@@ -525,6 +541,7 @@ namespace BitTorrent_Client.Models.PeerModels
         /// </remarks>
         public void SendInterested()
         {
+            Console.WriteLine("Sending intersted");
             Send(EncodeInterestedMessage());
             AmInterested = true;
         }
@@ -548,6 +565,7 @@ namespace BitTorrent_Client.Models.PeerModels
         /// </remarks>
         public void SendKeepAliveMessage()
         {
+            Console.WriteLine("Sending keep alive");
             Send(EncodeKeepAliveMessage());
         }
 
@@ -571,14 +589,16 @@ namespace BitTorrent_Client.Models.PeerModels
         /// </remarks>
         public void SendNotInterested()
         {
+            Console.WriteLine("Sending not interested");
             Send(EncodeNotInterestedMessage());
             AmInterested = false;
         }
 
         // Not done.
-        public void SendPiece()
+        public void SendPiece(int a_piece, int a_begin, byte[] a_block)
         {
-            Send(EncodePieceMessage());
+            Console.WriteLine("Sending piece message");
+            Send(EncodePieceMessage(a_piece, a_begin, a_block));
         }
 
         /// <summary>
@@ -604,6 +624,7 @@ namespace BitTorrent_Client.Models.PeerModels
         /// </remarks>
         public void SendRequest(int a_pieceIndex, int a_begin, int a_length)
         {
+            //Console.WriteLine("Sending request");
             Send(EncodeRequestMessage(a_pieceIndex, a_begin, a_length));
         }
 
@@ -623,6 +644,7 @@ namespace BitTorrent_Client.Models.PeerModels
         /// </remarks>
         public void SendUnchoke()
         {
+            Console.WriteLine("Sending unchoke"); 
             Send(EncodeUnchokeMessage());
             AmChoking = false;
         }
@@ -1011,17 +1033,54 @@ namespace BitTorrent_Client.Models.PeerModels
 
         #region Encode Methods
 
-        // Not done
+        /// <summary>
+        /// Encodes a bitfield message.
+        /// </summary>
+        /// <returns>Returns a byte message containing a bitfield message to send.</returns>
+        /// <remarks>
+        /// EncodeBitfieldMessage()
+        /// 
+        /// SYNOPSIS
+        ///     
+        ///     byte[] EncodeBitfieldMessage();
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function will encode a bitfield message to send to the peer.
+        ///     It first my get the total number of pieces, the total number of 
+        ///     bytes, and the number of bits. The bitfield needs to be created
+        ///     first before it can be copied to the return array. A BitArray is 
+        ///     created from the VerifiedPieces property from the torrent.
+        /// </remarks>
         private byte[] EncodeBitfieldMessage()
         {
+            // Get the number of pieces, bytes, and bits for computing bitfield.
+            int numberOfPieces = m_torrent.NumberOfPieces;
+            int numberOfBytes = (int)(Math.Ceiling(numberOfPieces / 8.0));
+            int numberOfBits = numberOfBytes * 8;
 
-            int bitfieldLength = (int)(Math.Ceiling(m_torrent.NumberOfPieces / 8.0));
+            // The array size is the message length + id + number of bytes.
+            var bitfieldMessage = new byte[numberOfBytes + 5];
+            var messageLength = BitConverter.GetBytes(numberOfBytes + 1);
 
-            byte[] bitfieldMessage = new byte[bitfieldLength + 5];
+            // If little endian, reverse bytes.
+            if(BitConverter.IsLittleEndian)
+            {
+                Array.Reverse(messageLength);
+            }
 
+            // Create bitfield to add to message.
+            var bitfield = new BitArray(m_torrent.VerifiedPieces);
+            var reversed = new BitArray(numberOfBits);
+            for (int i = 0; i < numberOfBits; i++)
+            {
+                reversed[i] = bitfield[numberOfBits - i - 1];
+            }
+
+            // Copy the message length, id and the bitfield to the array to be returned.
+            Buffer.BlockCopy(messageLength, 0, bitfieldMessage, 0, 4);
             bitfieldMessage[4] = 5;
-            // Calculate length of of bitfield 
-
+            reversed.CopyTo(bitfieldMessage, 5);
 
             return bitfieldMessage;
         }
@@ -1134,12 +1193,24 @@ namespace BitTorrent_Client.Models.PeerModels
         // Not done
         private byte[] EncodeHaveMessage(int a_pieceIndex)
         {
-            byte[] haveMessage = new byte[9];
+            var haveMessage = new byte[9];
 
+            // Message length
             haveMessage[3] = 5;
+            // Message ID.
             haveMessage[4] = 4;
 
-            byte[] pieceIndex = BitConverter.GetBytes(a_pieceIndex);
+            // Convert the piece index to byte array.
+            var pieceIndex = BitConverter.GetBytes(a_pieceIndex);
+
+            // If little endian, reverse bytes.
+            if(BitConverter.IsLittleEndian)
+            {
+                Array.Reverse(pieceIndex);
+            }
+
+            // Copy the piece index into the have message.
+            Buffer.BlockCopy(pieceIndex, 0, haveMessage, 5, 4);
 
             return haveMessage;
         }
@@ -1209,7 +1280,7 @@ namespace BitTorrent_Client.Models.PeerModels
         }
 
         // Not done
-        private byte[] EncodePieceMessage()
+        private byte[] EncodePieceMessage(int a_piece, int a_begin, byte[] block)
         {
             byte[] pieceMessage = new byte[18];
 
@@ -1416,7 +1487,9 @@ namespace BitTorrent_Client.Models.PeerModels
         /// </remarks>
         private void HandleIncomingMessage(byte[] a_message)
         {
+            
             MessageType messageType = GetMessageType(a_message);
+            LastActive = DateTime.Now;
 
             switch (messageType)
             {
@@ -1517,7 +1590,6 @@ namespace BitTorrent_Client.Models.PeerModels
 
                     break;
                 default:
-
                     break;
             }
         }
@@ -1548,7 +1620,6 @@ namespace BitTorrent_Client.Models.PeerModels
             BitfieldReceived = true;
 
             // Copies a_hasPiece to HasPiece property.
-            HasPiece = new bool[a_hasPiece.Length];
             Array.Copy(a_hasPiece, HasPiece, a_hasPiece.Length);
 
             // Computes current progress of peer.
