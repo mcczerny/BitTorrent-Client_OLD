@@ -85,6 +85,7 @@ namespace BitTorrent_Client.Models.TorrentModels
             Seeders = new ConcurrentDictionary<string, Peer>();
             Files = new ObservableCollection<FileWrapper>();
             IncomingBlocks = new ConcurrentQueue<IncomingBlock>();
+            OutgoingBlocks = new ConcurrentQueue<OutgoingBlock>();
             Trackers = new ObservableCollection<Tracker>();
         }
 
@@ -561,7 +562,6 @@ namespace BitTorrent_Client.Models.TorrentModels
                 {
                     m_status = value;
                     OnPropertyChanged("Status");
-
                 }
             }
         }
@@ -773,11 +773,11 @@ namespace BitTorrent_Client.Models.TorrentModels
         /// Processes any incoming blocks that are in the queue.
         /// </summary>
         /// <remarks>
-        /// ProcessBlocks()
+        /// ProcessIncoming()
         /// 
         /// SYNOPSIS
         /// 
-        ///     ProcessBlocks();
+        ///     ProcessIncoming();
         ///     
         /// DESCRIPTION
         /// 
@@ -787,7 +787,7 @@ namespace BitTorrent_Client.Models.TorrentModels
         ///     we try to verify the piece.
         ///     
         /// </remarks>
-        public void ProcessBlocks()
+        public void ProcessIncoming()
         {
             IncomingBlock block;
             while (IncomingBlocks.TryDequeue(out block))
@@ -880,7 +880,6 @@ namespace BitTorrent_Client.Models.TorrentModels
                     var data = TorrentIO.ReadBlock(block, this);
                     block.Peer.SendPiece(block.Index, block.Begin, data);
                 }
-                
             }
         }
 
@@ -1618,7 +1617,7 @@ namespace BitTorrent_Client.Models.TorrentModels
             a_peer.Disconnected += HandlePeerDisconnected;
             a_peer.HaveRecieved += HandleHaveReceived;
             a_peer.BlockRequested += HandleBlockRequested;
-            a_peer.BlockCanceled += HandleBlockCanceled;
+            a_peer.BlockCancelled += HandleBlockCancelled;
             a_peer.BlockReceived += HandleBlockReceived;
 
             // Connect to peer.

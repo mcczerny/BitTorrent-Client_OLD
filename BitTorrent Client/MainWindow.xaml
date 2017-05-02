@@ -104,26 +104,40 @@
                     </DataGrid>
                 </TabItem>
                 <TabItem Header="Info">
-                    <ListView Background="Transparent"
-                                  DataContext="{Binding Source={StaticResource viewModel}}"
-                                  ItemsSource="{Binding SelectedTorrent}">
-                        <ListView.ItemTemplate>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl Background="Transparent"
+                              DataContext="{Binding Source={StaticResource viewModel}}"
+                              ItemsSource="{Binding SelectedTorrentInfoViewModel}">
+                        <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <StackPanel>
-                                    <TextBox Text="{Binding Name}"/>
-                                    <TextBlock>
-                                        <Run Text="Name: "/>
-                                        <Run Text="{Binding Name}"/>
-                                    </TextBlock>
-                                   
-                                    <TextBlock>
-                                        <Run Text="Created On: "/>
-                                        <Run Text="{Binding CreationDate}"/>
-                                    </TextBlock>
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListView.ItemTemplate>
-                    </ListView>
+                                    <Grid>
+                                        <StackPanel>
+                                            <TextBlock>
+                                                <Run FontWeight="Bold" Text="Torrent Name: "/>
+                                                <Run Text="{Binding Name, Mode=OneWay}"/>
+                                            </TextBlock>
+                                            <TextBlock>
+                                                <Run FontWeight="Bold" Text="Total Size: "/>
+                                                <Run Text="{Binding FileSize, Mode=OneWay}"/>
+                                            </TextBlock>
+                                            <TextBlock>
+                                                <Run FontWeight="Bold" Text="Created On: "/>
+                                                <Run Text="{Binding CreationDate, Mode=OneWay}"/>
+                                            </TextBlock>
+                                            <TextBlock>
+                                                <Run FontWeight="Bold" Text="Hash: "/>
+                                                <Run Text="{Binding InfoHash, Mode=OneWay}"/>
+                                            </TextBlock>
+                                            <TextBlock>
+                                                <Run FontWeight="Bold" Text="Comment: "/>
+                                                <Run Text="{Binding Comment, Mode=OneWay}"/>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Grid>
+                                </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    </ScrollViewer>
                 </TabItem>
                 <TabItem Header="Peers">
                     <DataGrid Background="Transparent"                       

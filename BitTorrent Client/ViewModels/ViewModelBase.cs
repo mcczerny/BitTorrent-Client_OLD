@@ -112,7 +112,7 @@ namespace BitTorrent_Client.ViewModels
             get { return m_torrentViewModel; }
             set { m_torrentViewModel = value; }
         }
-
+        
         #endregion
 
         #region Methods
@@ -246,6 +246,7 @@ namespace BitTorrent_Client.ViewModels
 
         public void UpdateSelectedTorrentViews(object parameter)
         {
+
             m_selectedTorrent = parameter as Torrent;
 
             // Updates file tab.
@@ -256,7 +257,8 @@ namespace BitTorrent_Client.ViewModels
             }
 
             // Updates info tab.
-
+            SelectedTorrentInfoViewModel.Clear();
+            SelectedTorrentInfoViewModel.Add(m_selectedTorrent);
 
             // Updates peers tab.
             SelectedTorrentPeersViewModel.Clear();
@@ -276,7 +278,7 @@ namespace BitTorrent_Client.ViewModels
         #endregion
 
         #region Private Methods
-
+        
         public void Start(Torrent a_torrent)
         {
 
@@ -297,7 +299,8 @@ namespace BitTorrent_Client.ViewModels
            {
                while (a_torrent.Started)
                {
-                   a_torrent.ProcessBlocks();
+                   a_torrent.ProcessIncoming();
+                   a_torrent.ProcessOutgoing();
                    Thread.Sleep(1000);
                }
            });
