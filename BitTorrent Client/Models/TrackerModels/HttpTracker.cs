@@ -9,13 +9,21 @@ using BitTorrent_Client.Models.Bencoding;
 using BitTorrent_Client.Models.TorrentModels;
 namespace BitTorrent_Client.Models.TrackerModels
 {
+    /// <summary>
+    /// This class is used for sending and receiving data from HTTP trackers. It 
+    /// inherits from the base class Tracker.
+    /// </summary>
     public class HttpTracker : Tracker
     {
         #region Fields
 
+        // Minimum interval to wait.
         private long m_minInterval;
+        // Stores failure message if received.
         private string m_failureReason;
+        // Stores warning if received.
         private string m_warningMessage;
+        // Stores tracker id of tracker.
         private string m_trackerId;
 
         #endregion
@@ -27,11 +35,6 @@ namespace BitTorrent_Client.Models.TrackerModels
         {
          
         }
-
-        #endregion
-
-        #region Events
-
 
         #endregion
 
@@ -57,6 +60,7 @@ namespace BitTorrent_Client.Models.TrackerModels
         /// </remarks>
         override public void Update()
         {
+            // Computes time elapsed.
             TimeSpan timeElasped = DateTime.Now.Subtract(m_lastUpdate);
             
             if(timeElasped.Seconds > Interval)
@@ -91,6 +95,7 @@ namespace BitTorrent_Client.Models.TrackerModels
         {
             StringBuilder requestUrl = new StringBuilder();
 
+            // Appends parameters to the request url.
             requestUrl.Append(TrackerUrl);
             requestUrl.Append("?");
             requestUrl.Append("info_hash=");

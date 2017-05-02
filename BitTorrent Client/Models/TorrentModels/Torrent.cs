@@ -15,6 +15,11 @@ using BitTorrent_Client.Models.Utility_Functions;
 
 namespace BitTorrent_Client.Models.TorrentModels
 {
+    /// <summary>
+    /// This class holds all torrent meta-data as well as keeps track of pieces
+    /// and blocks downloaded. It also handles tracker and peer updates and 
+    /// request.
+    /// </summary>
     public class Torrent : INotifyPropertyChanged
     {
         #region Fields
@@ -135,13 +140,35 @@ namespace BitTorrent_Client.Models.TorrentModels
             }
         }
 
-        // NOT DONE
+        /// <summary>
+        /// Handles a cancel message event.
+        /// </summary>
+        /// <param name="a_peer">The peer that sent cancel.</param>
+        /// <param name="a_block">The Outgoing block object to cancel.</param>
+        /// <remarks>
+        /// HandleBlockCancelled()
+        /// 
+        /// SYNOPSIS
+        /// 
+        ///     HandleBlockCancelled(object a_peer, OutgoingBlock a_block);
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function will handle when a cancel message is received by
+        ///     the peer. It will check if the block to be sent is in the 
+        ///     OutgoingBlocks queue. If the block is still in the queue, it marks
+        ///     the block as cancelled so it will be ignored.
+        ///     
+        /// </remarks>
         private void HandleBlockCancelled(object a_peer, OutgoingBlock a_block)
         {
-           
-            foreach(var block in IncomingBlocks)
-            {
-                
+            foreach(var block in OutgoingBlocks)
+            {   
+                if(block.Peer.IP == a_block.Peer.IP && block.Index == a_block.Index
+                    && block.Length == a_block.Length && block.Begin == a_block.Begin)
+                {
+                    block.Cancelled = true;
+                }
             }
         }
 
@@ -187,6 +214,7 @@ namespace BitTorrent_Client.Models.TorrentModels
         ///     is in the group of selected leechers, then the piece is sent to
         ///     the peer by calling first reading in the block and calling the
         ///     function SendPiece.
+        ///     
         /// </remarks>
         private void HandleBlockRequested(object a_peer, OutgoingBlock a_block)
         {
@@ -240,6 +268,7 @@ namespace BitTorrent_Client.Models.TorrentModels
         ///     It will remove the peer event subscribers from the publisher and
         ///     try to remove the peer from the peers, seeders, and leechers 
         ///     dictionaries.
+        ///     
         /// </remarks>
         private void HandlePeerDisconnected(object a_peer, EventArgs a_args)
         {
@@ -745,6 +774,7 @@ namespace BitTorrent_Client.Models.TorrentModels
             // For each tracker url create a new tracker object.
             foreach (var trackerUrl in m_announceList)
             {
+                // Needs to implemented.
                 if (trackerUrl.Contains("ipv6"))
                 {
 
@@ -756,6 +786,8 @@ namespace BitTorrent_Client.Models.TorrentModels
                     Trackers.Add(tracker);
                     tracker.PeerListUpdated += HandlePeerListUpdated;
                 }
+
+                // Needs to be implemented.
                 else if (trackerUrl.Contains("udp://"))
                 {
                     //Tracker tracker = new UdpTracker(this, trackerUrl);
@@ -862,6 +894,20 @@ namespace BitTorrent_Client.Models.TorrentModels
         /// <summary>
         /// Processes any outgoing blocks that are in the queue.
         /// </summary>
+        /// <remarks>
+        /// ProcessOutgoing()
+        /// 
+        /// SYNOPSIS
+        ///     
+        ///     ProcessOutgoing()
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function will process and outgoing blocks that are in the 
+        ///     queue. If the block has been marked cancelled, it will ignore it.
+        ///     If not, then the piece is sent to the peer requesting it.
+        ///     
+        /// </remarks>
         public void ProcessOutgoing()
         {
             OutgoingBlock block;
@@ -884,8 +930,24 @@ namespace BitTorrent_Client.Models.TorrentModels
         }
 
         /// <summary>
-        /// 
+        /// Request blocks to download.
         /// </summary>
+        /// <remarks>
+        /// RequestBlocks()
+        /// 
+        /// SYNOPSIS
+        /// 
+        ///     RequestBlocks();
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function will request blocks to download from peers that are
+        ///     in the Seeders collection. The function makes sure to only make
+        ///     request for blocks that the client does not have and that the peer
+        ///     has. It also will make sure it does not request too many blocks 
+        ///     from a single peer.
+        ///     
+        /// </remarks>
         public void RequestBlocks()
         {
             ComputeRarestPieces();
@@ -933,18 +995,34 @@ namespace BitTorrent_Client.Models.TorrentModels
         }
 
         /// <summary>
-        /// 
+        /// Updates peers in the general Peer collection.
         /// </summary>
+        /// <remarks>
+        /// UpdatePeers()
+        /// 
+        /// SYNOPSIS
+        /// 
+        ///     UpdatePeers();
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function will update the peers in the peer collection. It 
+        ///     will make sure the peer has not timed out. If it has it will call
+        ///     the disconnect function to remove that peer. If the client has
+        ///     not finished downloading It will handle adding seeders and 
+        ///     leechers as well as sending keep alive messages.
+        ///  
+        /// </remarks>
         public void UpdatePeers()
-        {
-               
+        {        
             foreach (var peer in Peers)
             {
+                // Peer has not responded in set time.
                 if(DateTime.Now > peer.Value.LastActive.Add(m_timeout))
                 {
-                    Console.WriteLine("Peer disconnected because it timed out.");
                     peer.Value.Disconnect();
                 }
+
                 // If a handshake has not been sent and received.
                 if (!peer.Value.HandshakeReceived || !peer.Value.HandshakeSent)
                 {
@@ -975,9 +1053,6 @@ namespace BitTorrent_Client.Models.TorrentModels
                         peer.Value.SendInterested();
                     }
 
-                    // Send a keep alive message to avoid timeout.
-                    peer.Value.SendKeepAliveMessage();
-
                     if (Started && Leechers.Count < 1)
                     {
                         if (peer.Value.PeerInterested && peer.Value.AmChoking)
@@ -996,6 +1071,9 @@ namespace BitTorrent_Client.Models.TorrentModels
                         }
                     }
                 }
+
+                // Send a keep alive message to avoid timeout.
+                peer.Value.SendKeepAliveMessage();
             }
         }
 
@@ -1354,9 +1432,7 @@ namespace BitTorrent_Client.Models.TorrentModels
         private void DecodeTorrent()
         {
             var decodedData = Bencode.BDecode(m_rawData);
-
             SetMetaData(decodedData.ElementAt(0).Value);
-
             NumberOfPieces = (int)Math.Ceiling(Length / (double)PieceLength);
 
             ComputeInfoHash();
@@ -1468,7 +1544,6 @@ namespace BitTorrent_Client.Models.TorrentModels
                     file.Length = dictionary.Value["length"].Value;
 
                     offset += file.Length;
-                    file.EndOffset = offset;
 
                     // The initial path folder is the name of the torrent.
                     file.Path = Name;
@@ -1510,7 +1585,6 @@ namespace BitTorrent_Client.Models.TorrentModels
                 {
                     file.MD5Sum = a_dictionary["md5sum"].Value;
                 }
-                file.EndOffset = file.Length;
                 file.StartOffset = 0;
                 file.Path += "\\";
                 file.Path += file.Name;

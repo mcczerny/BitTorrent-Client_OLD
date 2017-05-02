@@ -29,6 +29,7 @@ namespace BitTorrent_Client.ViewModels.Commands
             remove { CommandManager.RequerySuggested -= value; }
         }
 
+        // Can only execute when the torrent is stopped.
         public bool CanExecute(object parameter)
         {
             if (parameter != null)
@@ -47,6 +48,7 @@ namespace BitTorrent_Client.ViewModels.Commands
             return false;
         }
 
+        // Call StarDownload for selected torrent.
         public void Execute(object parameter)
         {
             System.Collections.IList items = (System.Collections.IList)parameter;

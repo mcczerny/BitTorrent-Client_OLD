@@ -11,7 +11,9 @@ namespace BitTorrent_Client.Models.TrackerModels
     {
         #region Fields
 
+        // Stores the last update time for tracker.
         protected DateTime m_lastUpdate;
+        // The torrent making request.
         protected Torrent m_torrent;
 
         #endregion
@@ -28,20 +30,26 @@ namespace BitTorrent_Client.Models.TrackerModels
 
         #endregion
 
-        public event EventHandler<List<string>> PeerListUpdated;
-     
+        #region Events
+
+        public event EventHandler<List<string>> PeerListUpdated;     
+
         protected virtual void OnPeerListUpdated()
         {
             PeerListUpdated?.Invoke(this, Peers);
         }
 
+        #endregion
+
         #region Properties
 
-       
+        /// <summary>
+        /// Get/Protected set the last update time of tracker.
+        /// </summary>
         public DateTime LastUpdate
         {
             get { return m_lastUpdate; }
-            set { m_lastUpdate = value; }
+            protected set { m_lastUpdate = value; }
         }
 
         /// <summary>
@@ -95,15 +103,37 @@ namespace BitTorrent_Client.Models.TrackerModels
         #region Methods
 
         /// <summary>
-        /// Abstract class that both HttpTracker and UdpTracker inherit.
+        /// Abstract class that child classes inherit.
         /// </summary>
         public abstract void Update();
 
+        /// <summary>
+        /// Parses peers from raw bytes.
+        /// </summary>
+        /// <param name="a_rawPeers">Contains peers.</param>
+        /// <remarks>
+        /// ParsePeers()
+        /// 
+        /// SYNOPSIS
+        /// 
+        ///     ParsePeers(byte[] a_rawPeers);
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function will parse peers from a byte array. It must go
+        ///     through the array and form an ip address and port. The first four
+        ///     bytes are each segment of the ip where a '.' must be added between
+        ///     them. The next 2 bytes make up the port where a ":" must be added
+        ///     and the bytes must be converted before the address is added to the
+        ///     peers list.
+        ///     
+        /// </remarks>
         protected void ParsePeers(byte[] a_rawPeers)
         {
             var index = 0;
             while (index < a_rawPeers.Length)
             {
+                // Forms ip address.
                 StringBuilder address = new StringBuilder();
                 for (var i = index; i < (index + 4); i++)
                 {
@@ -113,6 +143,7 @@ namespace BitTorrent_Client.Models.TrackerModels
                         address.Append(".");
                     }
                 }
+                // Start of port.
                 address.Append(":");
                 index += 4;
 
@@ -120,9 +151,9 @@ namespace BitTorrent_Client.Models.TrackerModels
                 var highByte = a_rawPeers[index];
                 var lowByte = a_rawPeers[index + 1];
                 address.Append((highByte * 256 + lowByte));
-
                 index += 2;
 
+                // Add to peers list.
                 Peers.Add(address.ToString());
             }
         }

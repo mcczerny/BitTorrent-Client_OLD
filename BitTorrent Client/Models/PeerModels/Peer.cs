@@ -19,15 +19,17 @@ namespace BitTorrent_Client.Models.PeerModels
     {
         #region Fields
 
+        // The IPEndPoint for connecting to peer.
         private IPEndPoint m_remoteEndPoint;
+        // The torrent the client is downloading from the peer.
         private Torrent m_torrent;
-        
+        // The main socket for the peer.
         private Socket m_client;
-
+        // How much the peer has of the torrent.
         private float m_currentProgress;
-
+        // The handshake message size.
         private readonly int m_handshakeSize = 68;
-
+        // A readable representation of the download speed from client.
         private string m_downloadSpeed;
 
         #endregion
@@ -36,23 +38,22 @@ namespace BitTorrent_Client.Models.PeerModels
 
         public Peer(Torrent a_torrent, string a_address)
         {
+            // Sets base values for peer.
             m_torrent = a_torrent;
-
             LastActive = DateTime.Now;
             HasPiece = new bool[m_torrent.NumberOfPieces];
 
+            // Splits address into ip and port.
             var separatedAddress = a_address.Split(':');
             IP = separatedAddress[0];
             Port = Int32.Parse(separatedAddress[1]);
-
             m_remoteEndPoint = new IPEndPoint(IPAddress.Parse(IP), Port);
 
+            // Sets default state.
             AmChoking = true;
             AmInterested = false;
             PeerChoking = true;
             PeerInterested = false;
-
-
         }
 
         #endregion
@@ -226,7 +227,8 @@ namespace BitTorrent_Client.Models.PeerModels
         public float CurrentProgress
         {
             get { return m_currentProgress; }
-            set {
+            set
+            {
                 if (m_currentProgress != value)
                 {
                     m_currentProgress = value;
@@ -320,6 +322,7 @@ namespace BitTorrent_Client.Models.PeerModels
         ///     then call the function Receive to start listening for incoming
         ///     messages. A handshake is then sent to the peer and if the Handshake
         ///     is successfully sent then send a Bitfield message.
+        ///     
         /// </remarks>
         public void Connect()
         {
@@ -339,10 +342,8 @@ namespace BitTorrent_Client.Models.PeerModels
                     Connected = true;
                 }
                 // Catches exception and calls Disconnect()
-                catch (Exception e)
+                catch
                 {
-                    Console.WriteLine(IP);
-                    Console.WriteLine(e.ToString());
                     Disconnect();
                     return;
                 }
@@ -418,7 +419,6 @@ namespace BitTorrent_Client.Models.PeerModels
             // When the client has pieces.
             if (m_torrent.VerifiedPieces.OfType<bool>().Contains(true))
             {
-                Console.WriteLine("Sending bitfield");
                 Send(EncodeBitfieldMessage());
             }
         }
@@ -465,10 +465,10 @@ namespace BitTorrent_Client.Models.PeerModels
         ///     This function sends a choke message to the peer by calling the
         ///     private send function with the parameter being the function
         ///     EncodeChokeMessage. It also sets the AmChoking bool to true.
+        ///     
         /// </remarks>
         public void SendChoke()
         {
-            Console.WriteLine("Sending choke");
             Send(EncodeChokeMessage());
             AmChoking = true;
         }
@@ -492,7 +492,6 @@ namespace BitTorrent_Client.Models.PeerModels
         /// </remarks>
         private void SendHandshake()
         {
-            Console.WriteLine("Sending handshake");
             Send(EncodeHandshakeMessage());
             HandshakeSent = true;
         }
@@ -518,7 +517,6 @@ namespace BitTorrent_Client.Models.PeerModels
         /// </remarks>
         public void SendHave(int a_pieceIndex)
         {
-            Console.WriteLine("Sending have");
             Send(EncodeHaveMessage(a_pieceIndex));
         }
 
@@ -541,7 +539,6 @@ namespace BitTorrent_Client.Models.PeerModels
         /// </remarks>
         public void SendInterested()
         {
-            Console.WriteLine("Sending intersted");
             Send(EncodeInterestedMessage());
             AmInterested = true;
         }
@@ -565,7 +562,6 @@ namespace BitTorrent_Client.Models.PeerModels
         /// </remarks>
         public void SendKeepAliveMessage()
         {
-            Console.WriteLine("Sending keep alive");
             Send(EncodeKeepAliveMessage());
         }
 
@@ -582,22 +578,38 @@ namespace BitTorrent_Client.Models.PeerModels
         /// DESCRIPTION
         /// 
         ///     This function will send a not interested message to the peer by
-        ///     calling the private function Send with the using the function
+        ///     calling the private function Send with the function
         ///     EncodeNotInterestedMessage as it's function parameter. It will
         ///     also set the bool AmInterested to false.
         ///     
         /// </remarks>
         public void SendNotInterested()
         {
-            Console.WriteLine("Sending not interested");
             Send(EncodeNotInterestedMessage());
             AmInterested = false;
         }
 
-        // Not done.
+        /// <summary>
+        /// Sends a piece message to the peer.
+        /// </summary>
+        /// <param name="a_piece">The index of the piece.</param>
+        /// <param name="a_begin">The beginning ofset of block.</param>
+        /// <param name="a_block">The block data.</param>
+        /// <remarks>
+        /// SendPiece()
+        /// 
+        /// SYNOPSIS
+        /// 
+        ///     void SendPiece(int a_piece, int a_begin, byte[] a_block);
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function will send a piece message to the peer by calling
+        ///     the private function Send with EncodePieceMessage as its parameter.
+        ///     
+        /// </remarks>
         public void SendPiece(int a_piece, int a_begin, byte[] a_block)
         {
-            Console.WriteLine("Sending piece message");
             Send(EncodePieceMessage(a_piece, a_begin, a_block));
         }
 
@@ -624,7 +636,6 @@ namespace BitTorrent_Client.Models.PeerModels
         /// </remarks>
         public void SendRequest(int a_pieceIndex, int a_begin, int a_length)
         {
-            //Console.WriteLine("Sending request");
             Send(EncodeRequestMessage(a_pieceIndex, a_begin, a_length));
         }
 
@@ -644,7 +655,6 @@ namespace BitTorrent_Client.Models.PeerModels
         /// </remarks>
         public void SendUnchoke()
         {
-            Console.WriteLine("Sending unchoke"); 
             Send(EncodeUnchokeMessage());
             AmChoking = false;
         }
@@ -1051,6 +1061,7 @@ namespace BitTorrent_Client.Models.PeerModels
         ///     bytes, and the number of bits. The bitfield needs to be created
         ///     first before it can be copied to the return array. A BitArray is 
         ///     created from the VerifiedPieces property from the torrent.
+        ///     
         /// </remarks>
         private byte[] EncodeBitfieldMessage()
         {
@@ -1105,6 +1116,7 @@ namespace BitTorrent_Client.Models.PeerModels
         ///     parameters into byte arrays and if neccesary reverses bytes if
         ///     little endian. The byte arrays are copied into cancelMessage and
         ///     it is returned.
+        ///     
         /// </remarks>
         private byte[] EncodeCancelMessage(int a_index, int a_begin, int a_length)
         {
@@ -1190,7 +1202,26 @@ namespace BitTorrent_Client.Models.PeerModels
             return handshakeMessage;
         }
 
-        // Not done
+        /// <summary>
+        /// Encodes a have message.
+        /// </summary>
+        /// <param name="a_pieceIndex">The index of the piece.</param>
+        /// <returns>Returns a byte array containing a have message to send.</returns>
+        /// <remarks>
+        /// EncodeHaveMessage()
+        /// 
+        /// SYNOPSIS
+        /// 
+        ///     byte[] EncodeHaveMessage(int a_pieceIndex);
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function will encode a have message to send to the peer. It
+        ///     sets the message length and id. It then must convert a_piece index
+        ///     into a byte array and reverse it if needed. It then will copy it
+        ///     into the return byte array.
+        ///     
+        /// </remarks>
         private byte[] EncodeHaveMessage(int a_pieceIndex)
         {
             var haveMessage = new byte[9];
@@ -1279,10 +1310,56 @@ namespace BitTorrent_Client.Models.PeerModels
             return new byte[] { 0, 0, 0, 1, 3 };
         }
 
-        // Not done
-        private byte[] EncodePieceMessage(int a_piece, int a_begin, byte[] block)
+        /// <summary>
+        /// Encodes a piece message to send to peer.
+        /// </summary>
+        /// <param name="a_piece">The piece index.</param>
+        /// <param name="a_begin">The beginning offset in piece.</param>
+        /// <param name="a_block">The actual data.</param>
+        /// <returns>Returns a byte array containing a piece message to send.</returns>
+        /// <remarks>
+        /// EncodePieceMessage()
+        /// 
+        /// SYNOPSIS
+        /// 
+        ///     byte[] EncodePieceMessage(int a_piece, int a_begin, byte[] a_block);
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function will encode a piece message to send to a peer. The
+        ///     message length is first computed and the length, piece index, and
+        ///     begin offset are converted into byte arrays. If needed they are 
+        ///     reversed. The message ID along with the length, piece index, begin
+        ///     offset, and the block data are all copied to the return array.
+        ///     
+        /// </remarks>
+        private byte[] EncodePieceMessage(int a_piece, int a_begin, byte[] a_block)
         {
-            byte[] pieceMessage = new byte[18];
+            int messageLength = a_block.Length + 9;
+            byte[] pieceMessage = new byte[messageLength + 4];
+
+            // Convert integers into byte arrays.
+            var length = BitConverter.GetBytes(messageLength);
+            var piece = BitConverter.GetBytes(a_piece);
+            var begin = BitConverter.GetBytes(a_begin);
+            
+            // If little endian, reverse bytes.
+            if(BitConverter.IsLittleEndian)
+            {
+                Array.Reverse(length);
+                Array.Reverse(piece);
+                Array.Reverse(begin);
+                Array.Reverse(a_block);
+            }
+
+            // Message ID.
+            pieceMessage[4] = 7;
+
+            // Copy to return array.
+            Buffer.BlockCopy(length, 0, pieceMessage, 0, 4);
+            Buffer.BlockCopy(piece, 0, pieceMessage, 5, 4);
+            Buffer.BlockCopy(begin, 0, pieceMessage, 9, 4);
+            Buffer.BlockCopy(a_block, 0, pieceMessage, 13, a_block.Length);
 
             return pieceMessage;
         }
@@ -1382,6 +1459,7 @@ namespace BitTorrent_Client.Models.PeerModels
         ///     If a handshake message has not been received, then the next message
         ///     must be a handshake message. If not, then the first 4 bytes are
         ///     checked for the length of the next message.
+        ///     
         /// </remarks>
         private int GetMessageLength(byte[] a_receivedData)
         {
@@ -1484,17 +1562,19 @@ namespace BitTorrent_Client.Models.PeerModels
         ///     This function will handle an incoming message. It first determines
         ///     the type of message. Then, it will Decode the message and handle
         ///     it if needed by calling an event.
+        ///     
         /// </remarks>
         private void HandleIncomingMessage(byte[] a_message)
         {
-            
+            // Get the message type and update the last active time for peer. 
             MessageType messageType = GetMessageType(a_message);
             LastActive = DateTime.Now;
 
+            // Switch to decode and handle message.
             switch (messageType)
             {
                 case MessageType.Handshake:
-
+                    // Stores decoded infoHash.
                     byte[] infoHash;
                     if (DecodeHandshakeMessage(a_message, out infoHash))
                     {
@@ -1502,7 +1582,8 @@ namespace BitTorrent_Client.Models.PeerModels
                     }
                     break;
                 case MessageType.KeepAlive:
-
+                    // Nothing needs to be done as we already updated the last
+                    // active time.
                     if (DecodeKeepAliveMessage(a_message))
                     {
 
@@ -1537,7 +1618,7 @@ namespace BitTorrent_Client.Models.PeerModels
                     }
                     break;
                 case MessageType.Have:
-
+                    // Stores the decoded index of have message.
                     int haveIndex;
                     if (DecodeHaveMessage(a_message, out haveIndex))
                     {
@@ -1545,7 +1626,7 @@ namespace BitTorrent_Client.Models.PeerModels
                     }
                     break;
                 case MessageType.Bitfield:
-
+                    // Stores the decoded pieces the peer has.
                     bool[] peerHasPiece;
                     if (!BitfieldReceived)
                     {
@@ -1556,7 +1637,7 @@ namespace BitTorrent_Client.Models.PeerModels
                     }
                     break;
                 case MessageType.Request:
-
+                    // Stores the decoded request parameters.
                     int requestIndex;
                     int requestBegin;
                     int requestLength;
@@ -1567,7 +1648,7 @@ namespace BitTorrent_Client.Models.PeerModels
                     }
                     break;
                 case MessageType.Piece:
-
+                    // Stores the decoded piece parameters.
                     int pieceIndex;
                     int pieceBegin;
                     byte[] pieceBlock;
@@ -1577,7 +1658,7 @@ namespace BitTorrent_Client.Models.PeerModels
                     }
                     break;
                 case MessageType.Cancel:
-
+                    // Stores the decoded cancel parameters.
                     int cancelIndex;
                     int cancelBegin;
                     int cancelLength;
@@ -1587,7 +1668,7 @@ namespace BitTorrent_Client.Models.PeerModels
                     }
                     break;
                 case MessageType.Port:
-
+                    // Port message is only used if DHT tracker is implemented.
                     break;
                 default:
                     break;
@@ -1985,6 +2066,7 @@ namespace BitTorrent_Client.Models.PeerModels
         ///     This function will check if the torrent info hash matches the info
         ///     hash that the peer sent in their handshake message. If it matches,
         ///     then true is returned and if not false is.
+        ///     
         /// </remarks>
         private bool SameHash(byte[] a_infoHash)
         {

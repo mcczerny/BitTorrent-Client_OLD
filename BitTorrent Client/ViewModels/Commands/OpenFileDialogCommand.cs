@@ -30,11 +30,13 @@ namespace BitTorrent_Client.ViewModels.Commands
             remove { CommandManager.RequerySuggested -= value; }
         }
 
+        // This command can always run.
         public bool CanExecute(object parameter)
         {
             return true;
         }
 
+        // Opens a file dialog.
         public void Execute(object parameter)
         {
             this.ViewModel.OpenFileDialog(parameter as Torrent,

@@ -8,6 +8,10 @@ using System.IO;
 using BitTorrent_Client.Models.PeerModels;
 namespace BitTorrent_Client.Models.TorrentModels
 {
+    /// <summary>
+    /// This class is in charge of file IO for the torrent class. It will open a
+    /// torrent, read blocks, pieces and write blocks to files.
+    /// </summary>
     static class TorrentIO
     {
         #region Methods
@@ -56,6 +60,7 @@ namespace BitTorrent_Client.Models.TorrentModels
         ///     This function will read in the block at the specified piece index,
         ///     beginning offset. It will return a byte array with the block to
         ///     be used when sending a piece to a peer.
+        ///     
         /// </remarks>
         public static byte[] ReadBlock(OutgoingBlock a_block, Torrent a_torrent)
         {
@@ -70,6 +75,7 @@ namespace BitTorrent_Client.Models.TorrentModels
 
             return block;
         }
+        
         /// <summary>
         /// Reads in a piece from file.
         /// </summary>
@@ -107,7 +113,6 @@ namespace BitTorrent_Client.Models.TorrentModels
             return piece;   
         }
 
-
         /// <summary>
         /// Writes a block of data to the file.
         /// </summary>
@@ -126,24 +131,11 @@ namespace BitTorrent_Client.Models.TorrentModels
         /// 
         ///     This function will write the received block to the file. If the
         ///     file has not been created, then it will create one. 
+        ///     
         /// </remarks>
         public static void WriteBlock(IncomingBlock a_block, Torrent a_torrent)
         {
-            //long startIndex = a_block.Index * a_torrent.PieceLength + 
-            //    a_block.Begin * a_torrent.BlockLength;
-            //long endIndex = startIndex + a_block.Block.Length;
-
-            //FileWrapper file;
-            //for (var i = 0; i < a_torrent.Files.Count; i++)
-            //{
-            //    if (a_torrent.Files[i].StartOffset > startIndex ||
-            //        a_torrent.Files[i].EndOffset < startIndex)
-            //    {
-            //        continue;
-            //    }
-
-            //else if(a_torrent.Files[i].StartOffset > startIndex)
-            //}
+            // Covers for Single file.
             if (a_torrent.Files.Count == 1)
             {
                 var file = a_torrent.SaveDirectory + "\\" + a_torrent.Name;
@@ -162,24 +154,9 @@ namespace BitTorrent_Client.Models.TorrentModels
                     fileStream.Position = a_block.Index * a_torrent.PieceLength + a_block.Begin;
                     fileStream.Write(a_block.Block, 0, a_block.Block.Length);
                 }
+                // Mark the block as received.
                 a_torrent.HaveBlocks[a_block.Index][a_block.Begin/a_torrent.BlockLength] = true;
             }
-            //else
-            //{
-            //    long startByte = a_block.Index * a_torrent.PieceLength;
-
-            //    FileWrapper currentFile;
-            //    long totalLength = 0;
-            //    for(var i = 0; i < a_torrent.Files.Count; i++)
-            //    {
-            //        totalLength = a_torrent.Files[i].Length * a_torrent.PieceLength;
-            //        if(totalLength > startByte)
-            //        {
-            //            currentFile = a_torrent.Files[i];
-
-            //        }
-            //    }
-            //}
         }
         #endregion
     }

@@ -19,12 +19,6 @@ namespace BitTorrent_Client.Models.TorrentModels
             set;
         }
 
-        public long EndOffset
-        {
-            get;
-            set;
-        }
-
         /// <summary>
         /// Gets/Sets the length of the file.
         /// </summary>
@@ -34,6 +28,9 @@ namespace BitTorrent_Client.Models.TorrentModels
             set;
         }
 
+        /// <summary>
+        /// Gets/Sets the starting offset of the file.
+        /// </summary>
         public long StartOffset
         {
             get;

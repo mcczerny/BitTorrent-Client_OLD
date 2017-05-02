@@ -28,11 +28,13 @@ namespace BitTorrent_Client.ViewModels.Commands
             remove { CommandManager.RequerySuggested -= value; }
         }
 
+        // Can always execute.
         public bool CanExecute(object parameter)
         {
             return true;
         }
 
+        // Gets the selected torrent.
         public void Execute(object parameter)
         {
             System.Collections.IList items = (System.Collections.IList)parameter;

@@ -37,10 +37,10 @@ namespace BitTorrent_Client.ViewModels
             SelectedTorrentTrackersViewModel = new SelectedTorrentTrackersViewModel();
             TorrentViewModel = new TorrentViewModel();
 
-            this.OpenFileDialogCommand = new OpenFileDialogCommand(this, new OpenFileDialogViewModel());
-            this.SelectionChangedCommand = new SelectionChangedCommand(this);
-            this.StartDownloadCommand = new StartDownloadCommand(this, SelectedTorrentInfoViewModel);
-            this.PauseDownloadCommand = new PauseDownloadCommand(this, SelectedTorrentInfoViewModel);
+            OpenFileDialogCommand = new OpenFileDialogCommand(this, new OpenFileDialogViewModel());
+            SelectionChangedCommand = new SelectionChangedCommand(this);
+            StartDownloadCommand = new StartDownloadCommand(this, SelectedTorrentInfoViewModel);
+            PauseDownloadCommand = new PauseDownloadCommand(this, SelectedTorrentInfoViewModel);
         }
 
         #endregion
@@ -83,30 +83,45 @@ namespace BitTorrent_Client.ViewModels
             set;
         }
 
+        /// <summary>
+        /// Get/Set the files view model for the selected torrent.
+        /// </summary>
         public SelectedTorrentFilesViewModel SelectedTorrentFilesViewModel
         {
             get { return m_selectedTorrentFilesViewModel; }
             set { m_selectedTorrentFilesViewModel = value; }
         }
-
+        
+        /// <summary>
+        /// Get/Set the the torrent meta-data view model for the selected torrent.
+        /// </summary>
         public SelectedTorrentInfoViewModel SelectedTorrentInfoViewModel
         {
             get { return m_selectedTorrentInfoViewModel; }
             set { m_selectedTorrentInfoViewModel = value; }
         }
 
+        /// <summary>
+        /// Get/Set the peers view model for the selected torrent.
+        /// </summary>
         public SelectedTorrentPeersViewModel SelectedTorrentPeersViewModel
         {
             get { return m_selectedTorrentPeersViewModel; }
             set { m_selectedTorrentPeersViewModel = value; }
         }
 
+        /// <summary>
+        /// Get/Set the tracker view model for the selected torrent.
+        /// </summary>
         public SelectedTorrentTrackersViewModel SelectedTorrentTrackersViewModel
         {
             get { return m_selectedTorrentTrackersViewModel; }
             set { m_selectedTorrentTrackersViewModel = value; }
         }
 
+        /// <summary>
+        /// Get/Sest the torrenet view model for displaying all torrents.
+        /// </summary>
         public TorrentViewModel TorrentViewModel
         {
             get { return m_torrentViewModel; }
@@ -119,11 +134,28 @@ namespace BitTorrent_Client.ViewModels
 
         #region Public Methods
          
+        /// <summary>
+        /// Allows user to choose save directory for download.
+        /// </summary>
+        /// <returns>Returns the selected save directory.</returns>
+        /// <remarks>
+        /// ChooseSaveDirectory()
+        /// 
+        /// SYNOPSIS
+        /// 
+        ///     ChooseSaveDirectory()
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function will open a folder browser dialog to allow the user
+        ///     to choose a save directory for the torrent that is being added
+        ///     to the client. It will return the selected save directory.
+        ///     
+        /// </remarks>
         public string ChooseSaveDirectory()
         {
             FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog();
 
-         
             var result = folderBrowserDialog.ShowDialog();
             if(result == DialogResult.OK)
             {
@@ -133,6 +165,30 @@ namespace BitTorrent_Client.ViewModels
             return null;
         }
 
+        /// <summary>
+        /// Open a file dialog to allow the user to select a torrent to add.
+        /// </summary>
+        /// <param name="a_torrent">The torrent being added</param>
+        /// <param name="a_openFileDialog">The open file dialog.</param>
+        /// <remarks>
+        /// OpenFileDialog()
+        /// 
+        /// SYNOPSIS
+        /// 
+        ///     OpenFileDialog(Torrenet a_torrent, 
+        ///         Microsoft.Win32.OpenFileDialog a_openFileDialog);
+        ///         
+        /// DESCRIPTION
+        /// 
+        ///     This function will handle after an open file dialog is called. It
+        ///     will check if the user choose a file. If no file was chosen, the
+        ///     function will return. If not it will initialize a new torrent and
+        ///     the user will then choose a save directory. If a save location has
+        ///     been chosen. It will attempt to open the file and if the torrent
+        ///     can be opened it will add the torrent to the torrent view model.
+        ///     It will then start a task for verifying the torrent and starting it.
+        ///     
+        /// </remarks>
         public void OpenFileDialog(Torrent a_torrent, 
             Microsoft.Win32.OpenFileDialog a_openFileDialog)
         {
@@ -187,7 +243,6 @@ namespace BitTorrent_Client.ViewModels
                 setupTorrent.Wait();
                 Start(a_torrent);
             });         
-
         }
 
         /// <summary>
@@ -244,10 +299,26 @@ namespace BitTorrent_Client.ViewModels
             });
         }
 
-        public void UpdateSelectedTorrentViews(object parameter)
+        /// <summary>
+        /// Updates the selected torrent views.
+        /// </summary>
+        /// <param name="a_torrent">The selected torrent.</param>
+        /// <remarks>
+        /// UpdateSelectedTorrentViews()
+        /// 
+        /// SYNOPSIS
+        /// 
+        ///     UpdateSelectedTorrentViews(object a_torrent);
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function will update the selected torrent views. This 
+        ///     includes the files, info, peers, and tracker views.
+        ///     
+        /// </remarks>
+        public void UpdateSelectedTorrentViews(object a_torrent)
         {
-
-            m_selectedTorrent = parameter as Torrent;
+            m_selectedTorrent = a_torrent as Torrent;
 
             // Updates file tab.
             SelectedTorrentFilesViewModel.Clear();
@@ -279,9 +350,26 @@ namespace BitTorrent_Client.ViewModels
 
         #region Private Methods
         
+        /// <summary>
+        /// Starts a torrent.
+        /// </summary>
+        /// <param name="a_torrent">The torrent to start.</param>
+        /// <remarks>
+        /// Start()
+        /// 
+        /// SYNOPSIS
+        /// 
+        ///     Start(Torrent a_torrent);
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function will start the torrent by starting a task for
+        ///     updating the tracker, processing incoming/outgoing blocks, updating
+        ///     peers, and updating the GUI.
+        ///     
+        /// </remarks>
         public void Start(Torrent a_torrent)
         {
-
             a_torrent.Status = "Started";
 
             // Task will update trackers.

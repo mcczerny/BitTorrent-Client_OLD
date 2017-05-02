@@ -31,6 +31,7 @@ namespace BitTorrent_Client.ViewModels.Commands
             remove { CommandManager.RequerySuggested -= value; }
         }
 
+        // Can only execute if the torrent has started.
         public bool CanExecute(object parameter)
         {
             if(parameter != null)
@@ -48,6 +49,7 @@ namespace BitTorrent_Client.ViewModels.Commands
             return false;
         }
 
+        // Calls the PauseDownload function for selected torrent.
         public void Execute(object parameter)
         {
             System.Collections.IList items = (System.Collections.IList)parameter;
