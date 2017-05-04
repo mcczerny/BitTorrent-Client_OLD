@@ -153,7 +153,7 @@ namespace BitTorrent_Client.Models.Utility_Functions
         /// </remarks>
         public static byte[] SubArray(byte[] a_data, int a_index, int a_length)
         {
-            byte[] result = new byte[a_length];
+            var result = new byte[a_length];
             Buffer.BlockCopy(a_data, a_index, result, 0, a_length);
 
             return result;

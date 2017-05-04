@@ -8,7 +8,7 @@
         xmlns:vm="clr-namespace:BitTorrent_Client.ViewModels"
         xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
         mc:Ignorable="d"
-        Title="MainWindow" Height="356.4" Width="675.4">
+        Title="BitTorrent Client" Height="356.4" Width="675.4">
     <Window.Resources>
         <tm:Torrent x:Key="torrent"/>
         <vm:ViewModelBase x:Key="viewModel"/>
@@ -23,8 +23,6 @@
                 <MenuItem Header="_Open" 
                           Command="{Binding Path=OpenFileDialogCommand, Source={StaticResource viewModel}}"/>
             </MenuItem>
-            <MenuItem Header="_Options"/>
-            <MenuItem Header="_Help"/>
         </Menu>
         <Grid>
             <Grid.RowDefinitions>
@@ -74,7 +72,6 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
                     <DataGridTextColumn Header="Download Speed" Binding="{Binding DownloadSpeed, Mode=OneWay}" />
-                    <DataGridTextColumn Header="Upload Speed"/>
                 </DataGrid.Columns>
             </DataGrid>
             <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch"/>
@@ -88,7 +85,7 @@
                                   IsReadOnly="true"
                                   GridLinesVisibility="None">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Name"        
+                            <DataGridTextColumn Header="Path"        
                                                     Binding="{Binding Path}">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="{x:Type TextBlock}" 
@@ -152,7 +149,6 @@
                             <DataGridTextColumn Header="Port" Binding="{Binding Port}"/>
                             <DataGridTextColumn Header="Percentage Complete" Binding="{Binding CurrentProgress, Mode=OneWay, StringFormat={}{0:P}}"/>
                             <DataGridTextColumn Header="Download Speed" Binding="{Binding DownloadSpeed}"/>
-                            <DataGridTextColumn Header="Upload Speed"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </TabItem>
@@ -166,7 +162,10 @@
                                   AutoGenerateColumns="False"
                                   GridLinesVisibility="None">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Tracker Url" Binding="{Binding TrackerUrl}"></DataGridTextColumn>
+                            <DataGridTextColumn Header="Tracker Url" Binding="{Binding TrackerUrl}"/>
+                            <DataGridTextColumn Header="Request Interval" Binding="{Binding Interval}"/>
+                            <DataGridTextColumn Header="Completed Peers" Binding="{Binding Complete}"/>
+                            <DataGridTextColumn Header="Incomplete Peers" Binding="{Binding Incomplete}"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </TabItem>

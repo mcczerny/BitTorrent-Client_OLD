@@ -13,6 +13,19 @@ namespace BitTorrent_Client.ViewModels
         /// Opens a file dialog to select torrent.
         /// </summary>
         /// <returns>Returns an open file dialog</returns>
+        /// <remarks>
+        /// OpenFileDialog()
+        /// 
+        /// SYNOPSIS
+        /// 
+        ///     OpenFileDialog OpenFileDialog();
+        ///     
+        /// DESCRIPTION
+        /// 
+        ///     This function will create an open dialog and have the user 
+        ///     select a torrent to download. The OpenFileDialog is returned.
+        ///     
+        /// </remarks>
         public OpenFileDialog OpenFileDialog()
         {
             var openFileDialog = new OpenFileDialog();

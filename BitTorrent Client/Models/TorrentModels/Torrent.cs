@@ -6,7 +6,6 @@ using System.ComponentModel;
 using System.Security.Cryptography;
 using System.Collections.ObjectModel;
 using System.Collections.Concurrent;
-using System.Threading;
 
 using BitTorrent_Client.Models.Bencoding;
 using BitTorrent_Client.Models.TrackerModels;

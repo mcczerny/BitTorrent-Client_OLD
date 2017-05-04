@@ -28,11 +28,15 @@
             private set;
         }
 
+        /// <summary>
+        /// Get/Set if the request has been cancelled.
+        /// </summary>
         public bool Cancelled
         {
             get;
             set;
         }
+
         /// <summary>
         /// The beginning index of the block.
         /// </summary>
