@@ -740,6 +740,7 @@ namespace BitTorrent_Client.Models.TorrentModels
                 peer.Value.Disconnect();
             }
 
+            DownloadSpeed = Utility.GetBitsReadable(0);
             Status = "Paused";
         }
 

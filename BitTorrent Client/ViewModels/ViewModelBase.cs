@@ -267,6 +267,7 @@ namespace BitTorrent_Client.ViewModels
         {
             var torrent = a_torrent as Torrent;
             torrent.PausePeers();
+            UpdateSelectedTorrentViews(a_torrent);
         }
 
         /// <summary>
